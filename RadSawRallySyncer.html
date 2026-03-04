@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RadSaw Rally Syncer</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Cinzel:wght@400;700;900&family=MedievalSharp&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #120a05;          /* deep ember */
+    --panel: #1a0f08;       /* dark leather */
+    --border: #6b4a2a;      /* bronze */
+    --accent: #d4af37;      /* gold */
+    --accent2: #c0392b;     /* war red */
+    --green: #2ecc71;       /* buff green */
+    --red: #e74c3c;         /* damage red */
+    --text: #f3e8d6;        /* parchment */
+    --dim: #b89a6c;         /* sand */
+    --glow: 0 0 18px rgba(212,175,55,0.35);
+    --glow2: 0 0 18px rgba(192,57,43,0.35);
+    --steel: #8fa3ad;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(ellipse at 20% 0%, rgba(212,175,55,0.12) 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 100%, rgba(192,57,43,0.10) 0%, transparent 55%),
+      repeating-linear-gradient(135deg, rgba(243,232,214,0.03) 0 6px, transparent 6px 14px);
+
+  }
+
+  /* subtle texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,0.04), transparent 35%),
+    radial-gradient(circle at 70% 80%, rgba(0,0,0,0.10), transparent 40%),
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.04) 0 1px, transparent 1px 5px);
+  pointer-events: none;
+  z-index: 9999;
+  mix-blend-mode: overlay;
+}
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(6,15,30,0.8);
+    backdrop-filter: blur(10px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    font-size: 1.35rem;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    text-shadow: var(--glow);
+  }
+
+  .logo span { color: var(--accent2); text-shadow: var(--glow2); }
+
+  .brand { display: flex; flex-direction: column; gap: 2px; }
+  .subtitle {
+    font-family: 'MedievalSharp', cursive;
+    font-size: 0.85rem;
+    color: var(--dim);
+    letter-spacing: 0.08em;
+  }
+
+
+  .header-time {
+    text-align: right;
+  }
+
+  .utc-time {
+    font-family: 'Cinzel', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--accent);
+    text-shadow: var(--glow);
+    letter-spacing: 0.05em;
+  }
+
+  .utc-label {
+    font-size: 0.65rem;
+    color: var(--dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .main {
+    padding: 28px 32px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* Controls */
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .ctrl-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ctrl-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.6;
+  }
+
+  .ctrl-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 10px;
+  }
+
+  .ctrl-value {
+    font-family: 'Cinzel', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  input[type="text"], input[type="time"], input[type="number"], select {
+    background: rgba(0,20,50,0.6);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1rem;
+    padding: 6px 10px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type="text"]:focus, input[type="time"]:focus, input[type="number"]:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(0,212,255,0.15);
+  }
+
+  select option { background: #060f1e; }
+
+  
+  /* 24h manual time (HH:MM:SS) */
+  .time3-wrap{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    background: rgba(0,20,50,0.6);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+  .time3{
+    width: 64px;
+    text-align:center;
+    background: transparent;
+    border: none;
+    color: var(--accent);
+    font-family: 'Cinzel', sans-serif;
+    font-size: 1.05rem;
+    outline: none;
+  }
+  .time3::placeholder{ color: rgba(212,175,55,0.45); }
+  .time3-sep{ color: var(--dim); user-select:none; }
+  .time3-wrap:focus-within{
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(212,175,55,0.15);
+  }
+
+.interval-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .interval-row input { width: 80px; }
+  .interval-unit { color: var(--dim); font-size: 0.8rem; }
+
+  /* Table */
+  .table-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 28px;
+  }
+
+  .table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,212,255,0.03);
+  }
+
+  .table-title {
+    font-family: 'Cinzel', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+  }
+
+  .pulse-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+.table-title::before{
+  content:"⚔️ ";
+  filter: grayscale(0.2);
+}
+
+
+header::after{
+    content:'';
+    position:absolute;
+    left:0; right:0; bottom:-1px;
+    height:3px;
+    background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), var(--accent), transparent);
+    opacity:0.65;
+  }
+
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--dim);
+    padding: 12px 20px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(13,42,74,0.5);
+    font-size: 0.9rem;
+    transition: background 0.2s;
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  tr:hover td { background: rgba(0,212,255,0.04); }
+
+  .leader-name {
+    font-family: 'Cinzel', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    font-family: 'Cinzel', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 900;
+  }
+
+  .rank-1 { background: rgba(255,215,0,0.15); color: gold; border: 1px solid rgba(255,215,0,0.4); box-shadow: 0 0 10px rgba(255,215,0,0.2); }
+  .rank-2 { background: rgba(192,192,192,0.1); color: silver; border: 1px solid rgba(192,192,192,0.3); }
+  .rank-3 { background: rgba(205,127,50,0.1); color: #cd7f32; border: 1px solid rgba(205,127,50,0.3); }
+  .rank-other { background: rgba(255,255,255,0.05); color: var(--dim); border: 1px solid var(--border); }
+
+  .time-cell {
+    font-family: 'Cinzel', sans-serif;
+    font-size: 0.85rem;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+  }
+
+  .countdown {
+    font-family: 'Cinzel', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  .countdown.future { color: var(--accent2); text-shadow: 0 0 8px rgba(255,107,0,0.4); }
+  .countdown.past { color: var(--dim); }
+  .countdown.now { color: var(--green); text-shadow: 0 0 8px rgba(0,255,136,0.4); animation: pulse 1s infinite; }
+
+
+  /* Big SEND column */
+  .sendCell{
+    font-family: 'Cinzel', sans-serif;
+    font-weight: 900;
+    text-align:center;
+    letter-spacing: 0.08em;
+    border-radius: 6px;
+    padding: 10px 8px;
+    min-width: 92px;
+  }
+  .sendCell.idle{
+    color: rgba(184,154,108,0.7);
+    background: rgba(0,0,0,0.18);
+    border: 1px solid rgba(107,74,42,0.45);
+  }
+  .sendCell.warn{
+    color: #fff;
+    background: rgba(231,76,60,0.18);
+    border: 1px solid rgba(231,76,60,0.55);
+    box-shadow: 0 0 14px rgba(231,76,60,0.25);
+  }
+  .sendCell.now{
+    color: #fff;
+    background: rgba(231,76,60,0.35);
+    border: 1px solid rgba(231,76,60,0.95);
+    box-shadow: 0 0 24px rgba(231,76,60,0.55);
+    animation: pulse 1s infinite;
+  }
+
+  .march-bar-wrap {
+    width: 100%;
+    background: rgba(0,0,0,0.3);
+    border-radius: 2px;
+    height: 4px;
+    overflow: hidden;
+  }
+  .march-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    transition: width 0.5s ease;
+    box-shadow: 0 0 6px var(--accent);
+  }
+
+  /* Add/Remove leader */
+  .actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    padding: 9px 18px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .btn-primary {
+    background: rgba(0,212,255,0.1);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .btn-primary:hover {
+    background: rgba(0,212,255,0.2);
+    box-shadow: var(--glow);
+  }
+
+  .btn-danger {
+    background: rgba(255,51,102,0.08);
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  .btn-danger:hover {
+    background: rgba(255,51,102,0.15);
+    box-shadow: 0 0 15px rgba(255,51,102,0.3);
+  }
+
+  .btn-orange {
+    background: rgba(255,107,0,0.1);
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+  .btn-orange:hover {
+    background: rgba(255,107,0,0.2);
+    box-shadow: var(--glow2);
+  }
+
+  /* Add leader form */
+  .add-form {
+    display: none;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 14px;
+    align-items: end;
+  }
+
+  .add-form.open { display: grid; }
+
+  .form-field label {
+    display: block;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 6px;
+  }
+
+  .form-field input {
+    width: 100%;
+  }
+
+  /* Status bar */
+  .status-bar {
+    display: flex;
+    gap: 24px;
+    padding: 12px 20px;
+    background: rgba(0,212,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.7rem;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+  }
+
+  .status-item span { color: var(--text); }
+
+  /* Notification */
+  #notification {
+    position: fixed;
+    top: 80px;
+    right: 24px;
+    background: rgba(0,212,255,0.1);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    opacity: 0;
+    transform: translateX(20px);
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 9998;
+    box-shadow: var(--glow);
+  }
+
+  #notification.show { opacity: 1; transform: translateX(0); }
+
+  .tz-info {
+    font-size: 0.7rem;
+    color: var(--dim);
+    margin-top: 4px;
+  }
+
+  
+  .orderSelect{
+    width: 78px;
+    padding: 6px 10px;
+    font-size: 0.9rem;
+    background: rgba(0,20,50,0.6);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--accent);
+    outline: none;
+  }
+  .orderSelect:focus{ border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,212,255,0.15); }
+  /* First arrival validation */
+  .invalidTime{
+    border-color: var(--red) !important;
+    box-shadow: 0 0 0 2px rgba(231,76,60,0.25) !important;
+  }
+  .timeHint{
+    font-size: 0.7rem;
+    color: var(--dim);
+    margin-top: 6px;
+    letter-spacing: 0.06em;
+  }
+
+
+
+@media (max-width: 768px) {
+    .controls { grid-template-columns: 1fr; }
+    .add-form { grid-template-columns: 1fr; }
+    header { padding: 14px 16px; }
+    .main { padding: 16px; }
+    th, td { padding: 10px 12px; }
+    .logo { font-size: 1rem; }
+  }
+
+header::after{
+    content:'';
+    position:absolute;
+    left:0; right:0; bottom:-1px;
+    height:3px;
+    background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), var(--accent), transparent);
+    opacity:0.65;
+  }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><div class="logo">🏰 Rad<span>Saw</span> Rally Syncer</div><div class="subtitle">KingShot War Room</div></div>
+  <div class="header-time">
+    <div class="utc-time" id="utcClock">--:--:--</div>
+    <div class="utc-label">UTC · Live</div>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="ctrl-panel">
+      <div class="ctrl-label">Target First Arrival (UTC)</div>
+      <div class="time3-wrap" aria-label="Target First Arrival (UTC)">
+  <input class="time3" type="text" id="arrivalH" inputmode="numeric" maxlength="2" placeholder="HH" value="21" aria-label="Hours (00-23)">
+  <span class="time3-sep">:</span>
+  <input class="time3" type="text" id="arrivalM" inputmode="numeric" maxlength="2" placeholder="MM" value="55" aria-label="Minutes (00-59)">
+  <span class="time3-sep">:</span>
+  <input class="time3" type="text" id="arrivalS" inputmode="numeric" maxlength="2" placeholder="SS" value="00" aria-label="Seconds (00-59)">
+</div>
+<div class="tz-info">Format: HH:MM:SS (24h) · UTC</div>
+      <div class="tz-info" id="localArrivalLabel"></div>
+    </div>
+    <div class="ctrl-panel">
+      <div class="ctrl-label">March Interval (seconds)</div>
+      <div class="interval-row">
+        <input type="number" id="marchInterval" value="1" min="1" max="300">
+        <span class="interval-unit">sec between marches</span>
+      </div>
+    </div>
+    <div class="ctrl-panel">
+      <div class="ctrl-label">Your Time Zone</div>
+      <select id="tzSelect"></select>
+      <div class="tz-info" id="localTimeLabel"></div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="btn btn-primary" onclick="toggleAddForm()">+ Add Leader</button>
+    <button class="btn btn-orange" onclick="recalcAll()">⟳ Recalculate</button>
+    <button class="btn btn-danger" onclick="clearAll()">✕ Clear All</button>
+  </div>
+
+  <!-- Add Leader Form -->
+  <div class="add-form" id="addForm">
+    <div class="form-field">
+      <label>Leader Name</label>
+      <input type="text" id="newName" placeholder="e.g. Marco">
+    </div>
+    <div class="form-field">
+      <label>March Duration (seconds)</label>
+      <input type="number" id="newMarch" placeholder="e.g. 13" min="1">
+    </div>
+    <div>
+      <button class="btn btn-primary" onclick="addLeader()">Add</button>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <div class="table-header">
+      <div class="table-title">Leader Sync Table</div>
+      <div class="pulse-dot"></div>
+    </div>
+    <table>
+      <thead>
+        <tr data-launch="${l.launchSec}" data-arrival="${l.arrivalSec}" data-march="${l.march}">
+          <th>Order of Arrival</th>
+          <th>Leader</th>
+          <th>March (sec)</th>
+          <th>Launch UTC</th>
+          <th>Arrival UTC</th>
+          <th>Launch In</th>
+          <th>SEND</th>
+          <th>ETA</th>
+          <th>Progress</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="syncTable"></tbody>
+    </table>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <div class="status-item">LEADERS: <span id="statLeaders">0</span></div>
+    <div class="status-item">FIRST ARRIVAL: <span id="statFirst">--:--:--</span></div>
+    <div class="status-item">LAST ARRIVAL: <span id="statLast">--:--:--</span></div>
+    <div class="status-item">INTERVAL: <span id="statInterval">1s</span></div>
+    <div class="status-item">REFRESH: <span id="statRefresh">0</span></div>
+  </div>
+
+</div>
+
+<div id="notification"></div>
+
+<script>
+// ── Time Zones ───────────────────────────────────────────────
+const TIME_ZONES = [
+  { label: 'UTC', offset: 0 },
+  { label: 'Europe/London', offset: 0 },
+  { label: 'Europe/Paris', offset: 1 },
+  { label: 'Europe/Athens', offset: 2 },
+  { label: 'Asia/Jerusalem', offset: 2 },
+  { label: 'Asia/Amman', offset: 2 },
+  { label: 'Asia/Riyadh', offset: 3 },
+  { label: 'Asia/Baghdad', offset: 3 },
+  { label: 'Asia/Dubai', offset: 4 },
+  { label: 'Asia/Muscat', offset: 4 },
+  { label: 'Asia/Karachi', offset: 5 },
+  { label: 'Asia/Kolkata', offset: 5.5 },
+  { label: 'Asia/Dhaka', offset: 6 },
+  { label: 'Asia/Bangkok', offset: 7 },
+  { label: 'Asia/Singapore', offset: 8 },
+  { label: 'Asia/Tokyo', offset: 9 },
+  { label: 'Australia/Sydney', offset: 10 },
+  { label: 'America/New_York', offset: -5 },
+  { label: 'America/Chicago', offset: -6 },
+  { label: 'America/Denver', offset: -7 },
+  { label: 'America/Los_Angeles', offset: -8 },
+];
+
+// ── State ────────────────────────────────────────────────────
+let leaders = [
+  { name: 'Marco', march: 13 },
+  { name: 'Dee',   march: 20 },
+  { name: 'Bee',   march: 17 },
+  { name: 'Tavi',  march: 80 },
+];
+
+
+const ORDER_KEY = 'ks_arrival_order_v1';
+
+function clampInt(v, min, max) {
+  v = parseInt(v, 10);
+  if (!Number.isFinite(v)) v = min;
+  return Math.min(max, Math.max(min, v));
+}
+
+function loadOrderMap() {
+  try { return JSON.parse(localStorage.getItem(ORDER_KEY) || '{}'); }
+  catch (e) { return {}; }
+}
+
+function saveOrderMap(map) {
+  localStorage.setItem(ORDER_KEY, JSON.stringify(map));
+}
+
+function normalizeOrders() {
+  const n = leaders.length;
+  // clamp
+  leaders.forEach(l => { l.order = clampInt(l.order, 1, n); });
+
+  // fill duplicates with free slots
+  const counts = {};
+  leaders.forEach(l => { counts[l.order] = (counts[l.order] || 0) + 1; });
+
+  const available = [];
+  for (let i = 1; i <= n; i++) if (!counts[i]) available.push(i);
+
+  const seen = {};
+  leaders.forEach(l => {
+    if (!seen[l.order]) { seen[l.order] = 1; }
+    else { l.order = available.shift() ?? l.order; }
+  });
+
+  const map = {};
+  leaders.forEach(l => { map[l.name] = l.order; });
+  saveOrderMap(map);
+}
+
+function ensureOrders() {
+  const map = loadOrderMap();
+  const hasAny = leaders.some(l => map[l.name] != null);
+
+  if (!hasAny) {
+    // default order: longer march -> earlier launch -> earlier arrival
+    const sorted = [...leaders].sort((a, b) => b.march - a.march);
+    sorted.forEach((l, i) => { map[l.name] = i + 1; });
+    saveOrderMap(map);
+  }
+
+  leaders = leaders.map(l => ({ ...l, order: clampInt(map[l.name] ?? 1, 1, leaders.length) }));
+  normalizeOrders();
+}
+
+function setLeaderOrder(name, newOrder) {
+  const n = leaders.length;
+  newOrder = clampInt(newOrder, 1, n);
+
+  const target = leaders.find(l => l.name === name);
+  if (!target) return;
+
+  const other = leaders.find(l => l.order === newOrder && l.name !== name);
+  if (other) other.order = target.order;
+
+  target.order = newOrder;
+  normalizeOrders();
+}
+
+
+let refreshCount = 0;
+
+// ── Init ─────────────────────────────────────────────────────
+const tzSelect = document.getElementById('tzSelect');
+TIME_ZONES.forEach(tz => {
+  const opt = document.createElement('option');
+  opt.value = tz.offset;
+  opt.textContent = tz.label;
+  if (tz.label === 'Asia/Dubai') opt.selected = true;
+  tzSelect.appendChild(opt);
+});
+
+ensureOrders();
+
+// Arrival-order dropdowns (delegate)
+document.getElementById('syncTable').addEventListener('change', (e) => {
+  const t = e.target;
+  if (!(t instanceof HTMLSelectElement)) return;
+  if (!t.classList.contains('orderSelect')) return;
+  const name = t.getAttribute('data-name');
+  setLeaderOrder(name, t.value);
+  renderTable();
+});
+
+
+// ── Helpers ──────────────────────────────────────────────────
+
+function isValidTime24(str){
+  return /^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/.test(String(str||'').trim());
+}
+
+function utcNowSeconds() {
+  const now = new Date();
+  return now.getUTCHours() * 3600 + now.getUTCMinutes() * 60 + now.getUTCSeconds();
+}
+
+function parseArrivalToSeconds() {
+  const h = clampInt(document.getElementById('arrivalH').value || 0, 0, 23);
+  const m = clampInt(document.getElementById('arrivalM').value || 0, 0, 59);
+  const s = clampInt(document.getElementById('arrivalS').value || 0, 0, 59);
+  return h * 3600 + m * 60 + s;
+}
+
+function arrivalToHHMMSS() {
+  const h = clampInt(document.getElementById('arrivalH').value || 0, 0, 23);
+  const m = clampInt(document.getElementById('arrivalM').value || 0, 0, 59);
+  const s = clampInt(document.getElementById('arrivalS').value || 0, 0, 59);
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+function secondsToHMS(totalSec, showSign = false) {
+  const neg = totalSec < 0;
+  const abs = Math.abs(totalSec);
+  const h = Math.floor(abs / 3600);
+  const m = Math.floor((abs % 3600) / 60);
+  const s = abs % 60;
+  const sign = neg ? '-' : (showSign ? '+' : '');
+  if (h > 0) return `${sign}${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  return `${sign}${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function formatUTCTime(totalSec) {
+  const s = ((totalSec % 86400) + 86400) % 86400;
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function notify(msg) {
+  const el = document.getElementById('notification');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ── Render ───────────────────────────────────────────────────
+function renderTable() {
+  const nowSec = utcNowSeconds();
+  const firstArrivalSec = parseArrivalToSeconds();
+  const safeFirstArrivalSec = Number.isFinite(firstArrivalSec) ? firstArrivalSec : 0;
+  const firstArrivalStr = arrivalToHHMMSS();
+  const interval = parseInt(document.getElementById('marchInterval').value) || 1;
+  const tzOffset = parseFloat(document.getElementById('tzSelect').value);
+
+
+  // Sort by chosen Order of Arrival (editable)
+  const sorted = [...leaders].sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+
+  // Assign arrival times by order: 1 arrives at firstArrival, 2 at +interval, etc.
+  const withCalc = sorted.map((leader) => {
+    const order = clampInt(leader.order ?? 1, 1, leaders.length);
+    const arrivalSec = safeFirstArrivalSec + (order - 1) * interval;
+    const launchSec  = arrivalSec - leader.march;
+    const launchIn   = launchSec - nowSec;
+
+    const eta = arrivalSec - nowSec;
+
+    const progress = Math.max(0, Math.min(1, (nowSec - launchSec) / Math.max(1, leader.march)));
+
+    return { ...leader, rank: order, arrivalSec, launchSec, launchIn, eta, progress };
+  }).sort((a, b) => a.rank - b.rank);
+
+  const tbody = document.getElementById('syncTable');
+  tbody.innerHTML = withCalc.map((l, i) => {
+    const rankClass = l.rank <= 3 ? `rank-${l.rank}` : 'rank-other';
+    let launchClass = 'countdown future';
+    let launchStr;
+    if (Math.abs(l.launchIn) < 3) {
+      launchClass = 'countdown now';
+      launchStr = 'LAUNCH!';
+    } else if (l.launchIn < 0) {
+      launchClass = 'countdown past';
+      launchStr = secondsToHMS(l.launchIn, true);
+    } else {
+      launchStr = secondsToHMS(l.launchIn);
+    }
+
+    let etaClass = 'countdown future';
+    let etaStr;
+    if (Math.abs(l.eta) < 3) {
+      etaClass = 'countdown now';
+      etaStr = 'ARRIVING!';
+    } else if (l.eta < 0) {
+      etaClass = 'countdown past';
+      etaStr = secondsToHMS(l.eta, true);
+    } else {
+      etaStr = secondsToHMS(l.eta);
+    }
+
+    let sendTxt = '';
+    let sendCls = 'sendCell idle';
+    const li = Math.round(l.launchIn);
+    if (li > 5) {
+      sendTxt = '';
+      sendCls = 'sendCell idle';
+    } else if (li > 0) {
+      sendTxt = `SEND ${li}`;
+      sendCls = 'sendCell warn';
+    } else if (Math.abs(li) <= 1) {
+      sendTxt = 'SEND!';
+      sendCls = 'sendCell now';
+    } else if (li < 0 && li >= -5) {
+      sendTxt = 'SENT';
+      sendCls = 'sendCell idle';
+    } else {
+      sendTxt = '';
+      sendCls = 'sendCell idle';
+    }
+
+    const barPct = Math.round(l.progress * 100);
+
+    return `
+      <tr data-launch="${l.launchSec}" data-arrival="${l.arrivalSec}" data-march="${l.march}">
+        <td>
+          <select class="orderSelect" data-name="${l.name}" aria-label="Order of Arrival">
+            ${Array.from({length: leaders.length}, (_,i)=>{
+              const v = i+1;
+              return `<option value="${v}" ${v===l.rank?'selected':''}>${v}</option>`;
+            }).join('')}
+          </select>
+        </td>
+        <td><span class="leader-name">${l.name}</span></td>
+        <td>${l.march}s</td>
+        <td class="time-cell">${formatUTCTime(l.launchSec)}</td>
+        <td class="time-cell">${formatUTCTime(l.arrivalSec)}</td>
+        <td class="${launchClass} launchCell">${launchStr}</td>
+        <td class="${sendCls}">${sendTxt}</td>
+        <td class="${etaClass} etaCell">${etaStr}</td>
+        <td style="min-width:80px">
+          <div class="march-bar-wrap"><div class="march-bar" style="width:${barPct}%"></div></div>
+          <div class="pctLabel" style="font-size:0.6rem;color:var(--dim);margin-top:3px">${barPct}%</div>
+        </td>
+        <td><button class="btn btn-danger" style="padding:4px 10px;font-size:0.7rem" onclick="removeLeader(${i})">✕</button></td>
+      </tr>`;
+  }).join('');
+
+  // UTC clock
+  document.getElementById('utcClock').textContent = formatUTCTime(nowSec);
+
+  // Local time label
+  const localSec = nowSec + tzOffset * 3600;
+  document.getElementById('localTimeLabel').textContent = `Local: ${formatUTCTime(localSec)}`;
+
+  // First arrival in local time
+  const localArrival = safeFirstArrivalSec + tzOffset * 3600;
+  document.getElementById('localArrivalLabel').textContent = `Local: ${formatUTCTime(localArrival)}`;
+
+  // Status bar
+  document.getElementById('statLeaders').textContent = leaders.length;
+  if (withCalc.length) {
+    document.getElementById('statFirst').textContent = formatUTCTime(withCalc[0].arrivalSec);
+    document.getElementById('statLast').textContent  = formatUTCTime(withCalc[withCalc.length-1].arrivalSec);
+  }
+  document.getElementById('statInterval').textContent = `${interval}s`;
+  document.getElementById('statRefresh').textContent  = ++refreshCount;
+}
+
+
+
+// ── Tick (no full table rebuild) ───────────────────────────
+function tick() {
+  const now = new Date();
+  const nowSec = now.getUTCHours()*3600 + now.getUTCMinutes()*60 + now.getUTCSeconds();
+
+  // UTC clock
+  document.getElementById('utcClock').textContent = formatUTCTime(nowSec);
+
+  // Local time + local first-arrival labels (based on current inputs)
+  const tzOffset = parseFloat(document.getElementById('tzSelect').value) || 0;
+  const localSec = nowSec + tzOffset * 3600;
+  const firstArrivalSec = parseArrivalToSeconds();
+  const safeFirstArrivalSec = Number.isFinite(firstArrivalSec) ? firstArrivalSec : 0;
+  const localArrival = safeFirstArrivalSec + tzOffset * 3600;
+  document.getElementById('localTimeLabel').textContent = `Local: ${formatUTCTime(localSec)}`;
+  document.getElementById('localArrivalLabel').textContent = `Local: ${formatUTCTime(localArrival)}`;
+
+  // Update countdowns + progress bars without rebuilding rows
+  const tbody = document.getElementById('syncTable');
+  const rows = tbody.querySelectorAll('tr');
+  rows.forEach(tr => {
+    const launchSec = parseInt(tr.dataset.launch, 10);
+    const arrivalSec = parseInt(tr.dataset.arrival, 10);
+    const march = Math.max(1, parseInt(tr.dataset.march, 10) || 1);
+
+    const launchIn = launchSec - nowSec;
+    const eta = arrivalSec - nowSec;
+
+    const launchCell = tr.querySelector('.launchCell');
+    const etaCell = tr.querySelector('.etaCell');
+    const sendCell = tr.querySelector('.sendCell');
+
+    if (launchCell) {
+      let cls = 'countdown past';
+      let txt = secondsToHMS(launchIn, true);
+      if (Math.abs(launchIn) <= 1) { cls = 'countdown now'; txt = 'NOW'; }
+      else if (launchIn > 0) { cls = 'countdown future'; txt = secondsToHMS(launchIn); }
+      launchCell.className = `${cls} launchCell`;
+      launchCell.textContent = txt;
+    }
+
+    if (sendCell) {
+      const li = Math.round(launchIn);
+      let cls = 'sendCell idle';
+      let txt2 = '';
+      if (li > 5) { cls = 'sendCell idle'; txt2 = ''; }
+      else if (li > 0) { cls = 'sendCell warn'; txt2 = `SEND ${li}`; }
+      else if (Math.abs(li) <= 1) { cls = 'sendCell now'; txt2 = 'SEND!'; }
+      else if (li < 0 && li >= -5) { cls = 'sendCell idle'; txt2 = 'SENT'; }
+      else { cls = 'sendCell idle'; txt2 = ''; }
+      sendCell.className = cls;
+      sendCell.textContent = txt2;
+    }
+
+    if (etaCell) {
+      let cls = 'countdown past';
+      let txt = secondsToHMS(eta, true);
+      if (Math.abs(eta) <= 1) { cls = 'countdown now'; txt = 'NOW'; }
+      else if (eta > 0) { cls = 'countdown future'; txt = secondsToHMS(eta); }
+      etaCell.className = `${cls} etaCell`;
+      etaCell.textContent = txt;
+    }
+
+    // progress
+    const prog = Math.max(0, Math.min(1, (nowSec - launchSec) / march));
+    const pct = Math.round(prog * 100);
+    const bar = tr.querySelector('.march-bar');
+    if (bar) bar.style.width = `${pct}%`;
+    const pctLabel = tr.querySelector('.pctLabel');
+    if (pctLabel) pctLabel.textContent = `${pct}%`;
+  });
+}
+
+// ── Actions ──────────────────────────────────────────────────
+function toggleAddForm() {
+  const f = document.getElementById('addForm');
+  f.classList.toggle('open');
+}
+
+function addLeader() {
+  const name  = document.getElementById('newName').value.trim();
+  const march = parseInt(document.getElementById('newMarch').value);
+  if (!name || isNaN(march) || march < 1) { notify('Enter a valid name and march duration.'); return; }
+  leaders.push({ name, march });
+  document.getElementById('newName').value  = '';
+  document.getElementById('newMarch').value = '';
+  document.getElementById('addForm').classList.remove('open');
+  notify(`${name} added.`);
+  renderTable();
+}
+
+function removeLeader(idx) {
+  // idx is index in sorted array — find original
+  const sorted = [...leaders].sort((a, b) => b.march - a.march);
+  const target  = sorted[idx];
+  const origIdx = leaders.findIndex(l => l.name === target.name && l.march === target.march);
+  if (origIdx !== -1) { leaders.splice(origIdx, 1); notify(`${target.name} removed.`); renderTable(); }
+}
+
+function recalcAll() { notify('Recalculated.'); renderTable(); }
+
+function clearAll() {
+  if (confirm('Clear all leaders?')) { leaders = []; renderTable(); notify('Cleared.'); }
+}
+
+// ── Event listeners ──────────────────────────────────────────
+// HH:MM:SS inputs (auto-tab)
+['arrivalH','arrivalM','arrivalS'].forEach((id, idx, arr) => {
+  const el = document.getElementById(id);
+  const min = (id==='arrivalH') ? 0 : 0;
+  const max = (id==='arrivalH') ? 23 : 59;
+
+  el.addEventListener('input', () => {
+    // digits only, max 2 chars
+    el.value = (el.value || '').replace(/\D+/g,'').slice(0,2);
+    // auto-advance
+    if (el.value.length === 2 && idx < arr.length - 1) {
+      document.getElementById(arr[idx+1]).focus();
+      document.getElementById(arr[idx+1]).select();
+    }
+    renderTable();
+  });
+
+  el.addEventListener('keydown', (e) => {
+    if (e.key === 'Backspace' && el.value.length === 0 && idx > 0) {
+      const prev = document.getElementById(arr[idx-1]);
+      prev.focus();
+      // place cursor at end
+      const v = prev.value;
+      prev.setSelectionRange(v.length, v.length);
+    }
+  });
+
+  el.addEventListener('blur', () => {
+    const v = clampInt(el.value || 0, min, max);
+    el.value = String(v).padStart(2,'0');
+    renderTable();
+  });
+});
+document.getElementById('marchInterval').addEventListener('input', renderTable);
+document.getElementById('tzSelect').addEventListener('change', renderTable);
+
+// ── Tick every second ────────────────────────────────────────
+renderTable();
+setInterval(tick, 1000);
+</script>
+</body>
+</html>
