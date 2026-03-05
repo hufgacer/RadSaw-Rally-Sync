@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RadSaw Rally Syncer — Forest War Room</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg0:#07140c;
+    --bg1:#0b1f12;
+    --panel:rgba(10,28,18,0.78);
+    --panel2:rgba(12,34,22,0.88);
+    --border:rgba(130,180,120,0.25);
+    --gold:#d6c36a;
+    --leaf:#77d48a;
+    --red:#ff3b3b;
+    --text:#eaf7ee;
+    --dim:rgba(234,247,238,0.65);
+    --shadow:0 10px 30px rgba(0,0,0,0.35);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Share Tech Mono', monospace;
+    color:var(--text);
+    background:
+      radial-gradient(900px 600px at 20% 10%, rgba(119,212,138,0.18), transparent 55%),
+      radial-gradient(900px 600px at 85% 95%, rgba(214,195,106,0.12), transparent 60%),
+      linear-gradient(180deg, var(--bg0), var(--bg1));
+    min-height:100vh;
+  }
+  /* simple animated mist */
+  body:before{
+    content:'';
+    position:fixed; inset:-40%;
+    background:
+      radial-gradient(circle at 30% 30%, rgba(255,255,255,0.06), transparent 45%),
+      radial-gradient(circle at 70% 70%, rgba(255,255,255,0.05), transparent 48%),
+      radial-gradient(circle at 50% 20%, rgba(255,255,255,0.04), transparent 50%);
+    filter: blur(18px);
+    animation: drift 18s linear infinite;
+    pointer-events:none;
+    opacity:0.9;
+    mix-blend-mode: overlay;
+  }
+  @keyframes drift{
+    0%{transform:translate3d(-2%, -1%, 0)}
+    50%{transform:translate3d(2%, 1%, 0)}
+    100%{transform:translate3d(-2%, -1%, 0)}
+  }
+
+  header{
+    position:sticky; top:0; z-index:50;
+    background: linear-gradient(180deg, rgba(8,24,14,0.92), rgba(8,24,14,0.70));
+    border-bottom:1px solid var(--border);
+    backdrop-filter: blur(10px);
+    padding:14px 16px;
+  }
+  .hdr{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    max-width:1100px; margin:0 auto;
+  }
+  .brand{
+    display:flex; flex-direction:column; gap:2px;
+  }
+  .logo{
+    font-family:'Cinzel', serif;
+    font-weight:800;
+    letter-spacing:0.06em;
+    color:var(--gold);
+    text-shadow: 0 0 18px rgba(214,195,106,0.25);
+    font-size:1.05rem;
+    white-space:nowrap;
+  }
+  .subtitle{
+    font-size:0.75rem;
+    color:var(--dim);
+    letter-spacing:0.08em;
+  }
+  .clockbox{
+    text-align:right;
+    min-width:130px;
+  }
+  #utcClock{
+    font-family:'Cinzel', serif;
+    font-weight:800;
+    color:var(--leaf);
+    text-shadow: 0 0 18px rgba(119,212,138,0.25);
+    font-size:1.25rem;
+    line-height:1.1;
+  }
+  .clocklbl{
+    font-size:0.64rem;
+    color:var(--dim);
+    letter-spacing:0.22em;
+    text-transform:uppercase;
+  }
+
+  .wrap{
+    max-width:1100px;
+    margin:0 auto;
+    padding:16px;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    gap:12px;
+    margin-bottom:12px;
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    box-shadow:var(--shadow);
+    padding:12px;
+  }
+  .plbl{
+    font-size:0.64rem;
+    color:var(--dim);
+    letter-spacing:0.22em;
+    text-transform:uppercase;
+    margin-bottom:8px;
+  }
+
+  .time3{
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .time3 input{
+    width:64px;
+    padding:8px 10px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:rgba(0,0,0,0.25);
+    color:var(--gold);
+    font-size:1rem;
+    outline:none;
+  }
+  .time3 span{color:var(--dim)}
+  .hint{
+    margin-top:6px;
+    font-size:0.72rem;
+    color:var(--dim);
+  }
+
+  select, input[type="number"], input[type="text"]{
+    width:100%;
+    padding:8px 10px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:rgba(0,0,0,0.25);
+    color:var(--gold);
+    outline:none;
+    font-size:0.95rem;
+  }
+  input[type="number"]{ color:var(--gold); }
+  select option{ background:#0b1f12; }
+
+  .actions{
+    display:flex; flex-wrap:wrap;
+    gap:10px;
+    margin:12px 0;
+  }
+  .btn{
+    border:1px solid var(--border);
+    background:rgba(0,0,0,0.22);
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:12px;
+    cursor:pointer;
+    font-size:0.82rem;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+  }
+  .btn:hover{ border-color: rgba(119,212,138,0.45); }
+  .btn-danger{ border-color: rgba(255,59,59,0.35); }
+  .btn-danger:hover{ border-color: rgba(255,59,59,0.55); }
+  .btn-gold{ border-color: rgba(214,195,106,0.35); }
+  .btn-gold:hover{ border-color: rgba(214,195,106,0.6); }
+
+  .addRow{
+    display:none;
+    grid-template-columns: 1.2fr 1fr 1fr auto;
+    gap:10px;
+    align-items:end;
+    margin-bottom:12px;
+  }
+  .addRow.open{ display:grid; }
+  .fld label{
+    display:block;
+    font-size:0.64rem;
+    color:var(--dim);
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    margin-bottom:6px;
+  }
+
+  /* Desktop table */
+  .tableWrap{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:14px;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+  }
+  .thead{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:12px 12px;
+    border-bottom:1px solid var(--border);
+    background:rgba(0,0,0,0.20);
+  }
+  .ttitle{
+    font-family:'Cinzel', serif;
+    color:var(--gold);
+    letter-spacing:0.12em;
+    font-weight:800;
+    font-size:0.82rem;
+  }
+  .pulse{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--leaf);
+    box-shadow: 0 0 10px rgba(119,212,138,0.7);
+    animation:pulse 1.5s infinite;
+  }
+  @keyframes pulse{ 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(0.75);opacity:0.4} }
+
+  table{ width:100%; border-collapse:collapse; }
+  th, td{
+    padding:10px 10px;
+    border-bottom:1px solid rgba(130,180,120,0.12);
+    text-align:left;
+    vertical-align:middle;
+    font-size:0.92rem;
+  }
+  th{
+    font-size:0.62rem;
+    color:var(--dim);
+    text-transform:uppercase;
+    letter-spacing:0.22em;
+    background:rgba(0,0,0,0.14);
+  }
+  tr:hover td{ background:rgba(119,212,138,0.05); }
+
+  .leader{
+    font-family:'Cinzel', serif;
+    font-weight:800;
+    letter-spacing:0.02em;
+  }
+  .timeCell{
+    font-family:'Cinzel', serif;
+    color:var(--leaf);
+    font-weight:800;
+    letter-spacing:0.03em;
+  }
+  .count{
+    font-family:'Cinzel', serif;
+    font-weight:800;
+  }
+  .future{ color:var(--gold); }
+  .past{ color:var(--dim); }
+  .now{ color:var(--leaf); text-shadow: 0 0 12px rgba(119,212,138,0.35); }
+
+  .sendBig{
+    font-family:'Cinzel', serif;
+    font-weight:900;
+    letter-spacing:0.10em;
+    text-transform:uppercase;
+  }
+  .sendSoon{ color:var(--red); text-shadow: 0 0 14px rgba(255,59,59,0.35); }
+  .sendNow{ color:#fff; background:rgba(255,59,59,0.18); border:1px solid rgba(255,59,59,0.35); padding:4px 8px; border-radius:10px; }
+
+  .orderSel{
+    width:72px;
+    padding:6px 8px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:rgba(0,0,0,0.25);
+    color:var(--gold);
+    outline:none;
+  }
+
+  .barWrap{ height:5px; background:rgba(0,0,0,0.3); border-radius:999px; overflow:hidden; }
+  .bar{
+    height:100%;
+    width:0%;
+    background: linear-gradient(90deg, rgba(119,212,138,0.95), rgba(214,195,106,0.95));
+    clip-path: polygon(0 0, 92% 0, 100% 50%, 92% 100%, 0 100%);
+  }
+  .pct{ font-size:0.65rem; color:var(--dim); margin-top:4px; }
+
+  /* Mobile cards */
+  #cards{ display:none; gap:10px; }
+  .card{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:14px;
+    box-shadow:var(--shadow);
+    padding:12px;
+  }
+  .cardTop{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    margin-bottom:10px;
+  }
+  .cardName{ font-family:'Cinzel', serif; font-weight:900; color:var(--gold); }
+  .pill{
+    font-size:0.72rem;
+    padding:4px 10px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    color:var(--dim);
+    background:rgba(0,0,0,0.18);
+    white-space:nowrap;
+  }
+  .cardGrid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:8px 10px;
+    align-items:center;
+  }
+  .k{ font-size:0.64rem; color:var(--dim); letter-spacing:0.14em; text-transform:uppercase;}
+  .v{ font-family:'Cinzel', serif; font-weight:800; }
+  .cardSend{
+    margin-top:10px;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .removeMobile{
+    border:1px solid rgba(255,59,59,0.35);
+    background:rgba(255,59,59,0.10);
+    color:#ffdede;
+    padding:8px 10px;
+    border-radius:12px;
+    cursor:pointer;
+    font-size:0.75rem;
+    letter-spacing:0.10em;
+    text-transform:uppercase;
+  }
+
+  /* Responsive */
+  @media (max-width: 900px){
+    .grid{ grid-template-columns: 1fr; }
+    .addRow{ grid-template-columns: 1fr; }
+    .clockbox{ min-width:auto; }
+  }
+  @media (max-width: 768px){
+    #table{ display:none; }
+    #cards{ display:grid; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr">
+    <div class="brand">
+      <div class="logo">🌲 RadSaw Rally Syncer</div>
+      <div class="subtitle">KingShot Forest War Room</div>
+    </div>
+    <div class="clockbox">
+      <div id="utcClock">--:--:--</div>
+      <div class="clocklbl">UTC · LIVE</div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="grid">
+    <div class="panel">
+      <div class="plbl">Target First Arrival (UTC)</div>
+      <div class="time3">
+        <input id="arrH" type="text" inputmode="numeric" maxlength="2" placeholder="HH" value="21" aria-label="Hours (00-23)">
+        <span>:</span>
+        <input id="arrM" type="text" inputmode="numeric" maxlength="2" placeholder="MM" value="55" aria-label="Minutes (00-59)">
+        <span>:</span>
+        <input id="arrS" type="text" inputmode="numeric" maxlength="2" placeholder="SS" value="00" aria-label="Seconds (00-59)">
+      </div>
+      <div class="hint" id="localArrivalLabel">Local: --:--:--</div>
+    </div>
+
+    <div class="panel">
+      <div class="plbl">March Interval (seconds)</div>
+      <input id="marchInterval" type="number" min="0" max="300" value="1">
+      <div class="hint">Gap between consecutive arrivals</div>
+    </div>
+
+    <div class="panel">
+      <div class="plbl">Your Time Zone</div>
+      <select id="tzSelect"></select>
+      <div class="hint" id="localTimeLabel">Local: --:--:--</div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-gold" id="btnAdd">+ Add Leader</button>
+    <button class="btn" id="btnSound">Sound: OFF</button>
+    <button class="btn btn-danger" id="btnClear">Clear All</button>
+  </div>
+
+  <div class="addRow panel" id="addRow">
+    <div class="fld">
+      <label>Leader Name</label>
+      <input id="newName" type="text" placeholder="e.g. Marco">
+    </div>
+    <div class="fld">
+      <label>March Duration (sec)</label>
+      <input id="newMarch" type="number" min="1" placeholder="e.g. 13">
+    </div>
+    <div class="fld">
+      <label>Order of Arrival</label>
+      <select id="newOrder"></select>
+    </div>
+    <div>
+      <button class="btn btn-gold" id="btnAddSave">Add</button>
+    </div>
+  </div>
+
+  <div class="tableWrap" id="tableWrap">
+    <div class="thead">
+      <div class="ttitle">⚔️ Leader Sync Table</div>
+      <div class="pulse"></div>
+    </div>
+
+    <div id="table">
+      <table>
+        <thead>
+          <tr>
+            <th>Order</th>
+            <th>Leader</th>
+            <th>March</th>
+            <th>Launch UTC</th>
+            <th>Arrival UTC</th>
+            <th>Send</th>
+            <th>ETA</th>
+            <th>Progress</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div id="cards"></div>
+  </div>
+
+  <div class="hint" style="margin-top:10px;">
+    Tip: on mobile, you’ll see rally cards (no sideways scrolling).
+  </div>
+</div>
+
+<script>
+(() => {
+  // ─────────────────────────────────────────────────────────────
+  // Simple state + persistence
+  // ─────────────────────────────────────────────────────────────
+  const STORAGE_KEY = "ks_rally_syncer_v1";
+
+  /** @type {{name:string, march:number, order:number}[]} */
+  let leaders = [];
+
+  const defaultLeaders = [
+    { name: "Marco", march: 13, order: 1 },
+    { name: "Dee",   march: 20, order: 2 },
+    { name: "Bee",   march: 17, order: 3 },
+    { name: "Tavi",  march: 80, order: 4 },
+  ];
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) { leaders = defaultLeaders.slice(); return; }
+      const obj = JSON.parse(raw);
+      if (!Array.isArray(obj.leaders)) throw new Error("bad");
+      leaders = obj.leaders
+        .filter(x => x && typeof x.name === "string")
+        .map(x => ({
+          name: x.name.trim(),
+          march: clampInt(x.march, 1, 9999),
+          order: clampInt(x.order, 1, 999),
+        }))
+        .filter(x => x.name.length);
+      if (!leaders.length) leaders = defaultLeaders.slice();
+      normalizeOrders();
+    }catch(e){
+      leaders = defaultLeaders.slice();
+      normalizeOrders();
+    }
+  }
+
+  function saveState(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ leaders }));
+  }
+
+  function clampInt(v, min, max){
+    v = parseInt(v, 10);
+    if (!Number.isFinite(v)) v = min;
+    return Math.min(max, Math.max(min, v));
+  }
+
+  function normalizeOrders(){
+    const n = leaders.length || 1;
+    leaders.forEach(l => l.order = clampInt(l.order, 1, n));
+
+    // de-dupe by filling missing slots
+    const taken = new Set();
+    const missing = [];
+    for (let i=1;i<=n;i++) missing.push(i);
+
+    // remove existing from missing
+    leaders.forEach(l => {
+      const idx = missing.indexOf(l.order);
+      if (idx !== -1) missing.splice(idx, 1);
+    });
+
+    taken.clear();
+    leaders.forEach(l => {
+      if (!taken.has(l.order)) taken.add(l.order);
+      else l.order = missing.shift() || l.order;
+      taken.add(l.order);
+    });
+
+    saveState();
+  }
+
+  function setOrder(name, newOrder){
+    const n = leaders.length;
+    newOrder = clampInt(newOrder, 1, n);
+    const target = leaders.find(l => l.name === name);
+    if (!target) return;
+    const other = leaders.find(l => l.order === newOrder && l.name !== name);
+    if (other) other.order = target.order;
+    target.order = newOrder;
+    normalizeOrders();
+  }
+
+  function removeLeader(name){
+    leaders = leaders.filter(l => l.name !== name);
+    if (!leaders.length) leaders = [];
+    normalizeOrders();
+    renderAll();
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Time zones (simple offset list)
+  // ─────────────────────────────────────────────────────────────
+  const TIME_ZONES = [
+    { label: "UTC", offset: 0 },
+    { label: "Europe/London", offset: 0 },
+    { label: "Europe/Paris", offset: 1 },
+    { label: "Europe/Athens", offset: 2 },
+    { label: "Asia/Amman", offset: 2 },
+    { label: "Asia/Riyadh", offset: 3 },
+    { label: "Asia/Dubai", offset: 4 },
+    { label: "Asia/Muscat", offset: 4 },
+    { label: "Asia/Karachi", offset: 5 },
+    { label: "Asia/Kolkata", offset: 5.5 },
+    { label: "Asia/Dhaka", offset: 6 },
+    { label: "Asia/Bangkok", offset: 7 },
+    { label: "Asia/Singapore", offset: 8 },
+    { label: "Asia/Tokyo", offset: 9 },
+    { label: "Australia/Sydney", offset: 10 },
+    { label: "America/New_York", offset: -5 },
+    { label: "America/Chicago", offset: -6 },
+    { label: "America/Denver", offset: -7 },
+    { label: "America/Los_Angeles", offset: -8 },
+  ];
+
+  const el = {
+    utcClock: document.getElementById("utcClock"),
+    tzSelect: document.getElementById("tzSelect"),
+    localTimeLabel: document.getElementById("localTimeLabel"),
+    localArrivalLabel: document.getElementById("localArrivalLabel"),
+    marchInterval: document.getElementById("marchInterval"),
+    arrH: document.getElementById("arrH"),
+    arrM: document.getElementById("arrM"),
+    arrS: document.getElementById("arrS"),
+    tbody: document.getElementById("tbody"),
+    cards: document.getElementById("cards"),
+
+    btnAdd: document.getElementById("btnAdd"),
+    addRow: document.getElementById("addRow"),
+    newName: document.getElementById("newName"),
+    newMarch: document.getElementById("newMarch"),
+    newOrder: document.getElementById("newOrder"),
+    btnAddSave: document.getElementById("btnAddSave"),
+    btnClear: document.getElementById("btnClear"),
+
+    btnSound: document.getElementById("btnSound"),
+  };
+
+  function populateTZ(){
+    el.tzSelect.innerHTML = "";
+    TIME_ZONES.forEach(tz => {
+      const o = document.createElement("option");
+      o.value = String(tz.offset);
+      o.textContent = tz.label;
+      if (tz.label === "Asia/Dubai") o.selected = true;
+      el.tzSelect.appendChild(o);
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Time helpers
+  // ─────────────────────────────────────────────────────────────
+  function utcNowSec(){
+    const d = new Date();
+    return d.getUTCHours()*3600 + d.getUTCMinutes()*60 + d.getUTCSeconds();
+  }
+  function fmtUTC(sec){
+    sec = ((sec % 86400) + 86400) % 86400;
+    const h = Math.floor(sec/3600);
+    const m = Math.floor((sec%3600)/60);
+    const s = sec%60;
+    return String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
+  }
+  function fmtDelta(sec){
+    const neg = sec < 0;
+    const a = Math.abs(sec);
+    const mm = Math.floor(a/60);
+    const ss = a%60;
+    return (neg ? "-" : "") + String(mm).padStart(2,"0")+":"+String(ss).padStart(2,"0");
+  }
+  function readArrivalSec(){
+    const h = clampInt(el.arrH.value, 0, 23);
+    const m = clampInt(el.arrM.value, 0, 59);
+    const s = clampInt(el.arrS.value, 0, 59);
+    return h*3600 + m*60 + s;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Auto-tab HH/MM/SS input
+  // ─────────────────────────────────────────────────────────────
+  const timeInputs = [el.arrH, el.arrM, el.arrS];
+
+  function enforce2Digits(input, max){
+    // keep digits only
+    const digits = (input.value || "").replace(/[^\d]/g, "").slice(0,2);
+    input.value = digits;
+    const v = clampInt(digits || "0", 0, max);
+    // do not pad while typing; pad on blur
+    return v;
+  }
+
+  function pad2(input){
+    const digits = (input.value || "").replace(/[^\d]/g, "");
+    if (digits.length === 0) { input.value = "00"; return; }
+    input.value = String(clampInt(digits, 0, 99)).padStart(2,"0");
+  }
+
+  timeInputs.forEach((inp, idx) => {
+    const max = idx===0 ? 23 : 59;
+
+    inp.addEventListener("input", () => {
+      enforce2Digits(inp, max);
+      if (inp.value.length >= 2 && idx < timeInputs.length-1){
+        timeInputs[idx+1].focus();
+        timeInputs[idx+1].select();
+      }
+      renderAll();
+    });
+
+    inp.addEventListener("keydown", (e) => {
+      if (e.key === "Backspace" && inp.value.length === 0 && idx > 0){
+        timeInputs[idx-1].focus();
+      }
+      if (e.key === "ArrowLeft" && idx > 0){ timeInputs[idx-1].focus(); }
+      if (e.key === "ArrowRight" && idx < timeInputs.length-1){ timeInputs[idx+1].focus(); }
+    });
+
+    inp.addEventListener("blur", () => { pad2(inp); renderAll(); });
+    inp.addEventListener("focus", () => inp.select());
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Sound: 5-4-3-2-1 short horn, 0 big horn
+  // ─────────────────────────────────────────────────────────────
+  let soundEnabled = false;
+  let audioCtx = null;
+
+  function getAudio(){
+    if (!audioCtx){
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioCtx;
+  }
+
+  function horn(durationMs){
+    // Simple brass-ish synth: two detuned saws + quick envelope
+    const ctx = getAudio();
+    const t0 = ctx.currentTime;
+    const dur = durationMs/1000;
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(0.6, t0+0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(900, t0);
+    filter.frequency.exponentialRampToValueAtTime(500, t0+dur);
+
+    const o1 = ctx.createOscillator();
+    const o2 = ctx.createOscillator();
+    o1.type = "sawtooth";
+    o2.type = "sawtooth";
+    o1.frequency.setValueAtTime(220, t0);
+    o2.frequency.setValueAtTime(226, t0);
+
+    // slight pitch drop
+    o1.frequency.exponentialRampToValueAtTime(180, t0+dur);
+    o2.frequency.exponentialRampToValueAtTime(184, t0+dur);
+
+    o1.connect(filter); o2.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    o1.start(t0); o2.start(t0);
+    o1.stop(t0+dur); o2.stop(t0+dur);
+  }
+
+  function playShortHorn(){ horn(140); }
+  function playBigHorn(){ horn(420); }
+
+  // de-dupe sound events
+  const firedSound = new Set();
+
+  function maybeSound(leaderName, launchUtcSec, launchIn){
+    if (!soundEnabled) return;
+
+    const thresholds = [5,4,3,2,1,0];
+    for (const th of thresholds){
+      if (Math.abs(launchIn - th) <= 0){ // exact match
+        const key = leaderName + "|" + fmtUTC(launchUtcSec) + "|T" + th;
+        if (firedSound.has(key)) continue;
+        firedSound.add(key);
+
+        if (th === 0) playBigHorn();
+        else playShortHorn();
+      }
+    }
+    // prevent unbounded growth
+    if (firedSound.size > 2000) firedSound.clear();
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Rendering (rebuild only on changes)
+  // ─────────────────────────────────────────────────────────────
+  function computedRows(){
+    const now = utcNowSec();
+    const firstArrival = readArrivalSec();
+    const interval = clampInt(el.marchInterval.value, 0, 300);
+
+    // sort by order
+    const sorted = leaders.slice().sort((a,b) => a.order - b.order);
+
+    return sorted.map(l => {
+      const arrivalUtc = firstArrival + (l.order - 1) * interval;
+      const launchUtc = arrivalUtc - l.march;
+      const launchIn = launchUtc - now;
+      const eta = arrivalUtc - now;
+      const prog = Math.max(0, Math.min(1, (now - launchUtc)/Math.max(1,l.march)));
+      return {
+        name:l.name, march:l.march, order:l.order,
+        arrivalUtc, launchUtc, launchIn, eta, prog
+      };
+    });
+  }
+
+  function buildOrderOptions(selected, n){
+    let out = "";
+    for (let i=1;i<=n;i++){
+      out += `<option value="${i}" ${i===selected?"selected":""}>${i}</option>`;
+    }
+    return out;
+  }
+
+  function renderDesktop(rows){
+    const n = leaders.length;
+    el.tbody.innerHTML = rows.map(r => {
+      const sendText = sendLabel(r.launchIn);
+      const sendCls = sendClass(r.launchIn);
+      const etaCls = deltaClass(r.eta);
+      const launchCls = deltaClass(r.launchIn);
+      const pct = Math.round(r.prog*100);
+
+      return `
+        <tr data-name="${escapeHtml(r.name)}" data-launch="${r.launchUtc}" data-arrival="${r.arrivalUtc}" data-march="${r.march}">
+          <td><select class="orderSel" data-order-name="${escapeHtml(r.name)}">${buildOrderOptions(r.order, n)}</select></td>
+          <td class="leader">${escapeHtml(r.name)}</td>
+          <td>${r.march}s</td>
+          <td class="timeCell">${fmtUTC(r.launchUtc)}</td>
+          <td class="timeCell">${fmtUTC(r.arrivalUtc)}</td>
+          <td class="sendBig ${sendCls} sendCell">${sendText}</td>
+          <td class="count ${etaCls} etaCell">${deltaLabel(r.eta)}</td>
+          <td style="min-width:120px">
+            <div class="barWrap"><div class="bar" style="width:${pct}%"></div></div>
+            <div class="pct pctLabel">${pct}%</div>
+          </td>
+          <td><button class="removeMobile" style="padding:6px 8px;font-size:0.7rem" data-remove="${escapeHtml(r.name)}">✕</button></td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  function renderMobile(rows){
+    const n = leaders.length;
+    el.cards.innerHTML = rows.map(r => {
+      const sendText = sendLabel(r.launchIn);
+      const sendCls = sendClass(r.launchIn);
+      const etaCls = deltaClass(r.eta);
+      const pct = Math.round(r.prog*100);
+
+      return `
+        <div class="card" data-name="${escapeHtml(r.name)}" data-launch="${r.launchUtc}" data-arrival="${r.arrivalUtc}" data-march="${r.march}">
+          <div class="cardTop">
+            <div class="cardName">⚔️ ${escapeHtml(r.name)}</div>
+            <div class="pill">Order
+              <select class="orderSel" style="margin-left:6px;width:70px" data-order-name="${escapeHtml(r.name)}">
+                ${buildOrderOptions(r.order, n)}
+              </select>
+            </div>
+          </div>
+
+          <div class="cardGrid">
+            <div class="k">March</div><div class="v">${r.march}s</div>
+            <div class="k">Launch</div><div class="v timeCell">${fmtUTC(r.launchUtc)} UTC</div>
+            <div class="k">Arrival</div><div class="v timeCell">${fmtUTC(r.arrivalUtc)} UTC</div>
+            <div class="k">ETA</div><div class="v count ${etaCls} etaCell">${deltaLabel(r.eta)}</div>
+          </div>
+
+          <div style="margin-top:10px">
+            <div class="barWrap"><div class="bar" style="width:${pct}%"></div></div>
+            <div class="pct pctLabel">${pct}%</div>
+          </div>
+
+          <div class="cardSend">
+            <div class="sendBig ${sendCls} sendCell" style="font-size:1.05rem">${sendText}</div>
+            <button class="removeMobile" data-remove="${escapeHtml(r.name)}">❌ Remove</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function renderAll(){
+    normalizeOrders();
+    updateNewOrderOptions();
+
+    const rows = computedRows();
+    renderDesktop(rows);
+    renderMobile(rows);
+
+    // wire order change + remove (event delegation)
+    // (no per-row listeners)
+    saveState();
+
+    // update labels immediately
+    updateClocksAndLabels();
+    // ensure tick updates countdowns without rebuild
+  }
+
+  function updateNewOrderOptions(){
+    const n = leaders.length + 1; // include new leader
+    const last = n; // default to last
+    el.newOrder.innerHTML = "";
+    for (let i=1;i<=n;i++){
+      const o = document.createElement("option");
+      o.value = String(i);
+      o.textContent = String(i);
+      if (i === last) o.selected = true;
+      el.newOrder.appendChild(o);
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Tick updates (no rebuild): clock, labels, countdowns, bars, sounds
+  // ─────────────────────────────────────────────────────────────
+  function deltaClass(sec){
+    if (Math.abs(sec) <= 1) return "now";
+    return sec > 0 ? "future" : "past";
+  }
+  function deltaLabel(sec){
+    if (Math.abs(sec) <= 1) return "NOW";
+    return sec > 0 ? fmtDelta(sec) : fmtDelta(sec);
+  }
+
+  function sendLabel(launchIn){
+    if (launchIn > 5) return "—";
+    if (launchIn > 0 && launchIn <= 5) return "SEND " + Math.ceil(launchIn);
+    if (Math.abs(launchIn) <= 1) return "SEND!";
+    if (launchIn < -1) return "SENT";
+    return "SEND!";
+  }
+  function sendClass(launchIn){
+    if (launchIn > 5) return "";
+    if (launchIn > 0 && launchIn <= 5) return "sendSoon";
+    if (Math.abs(launchIn) <= 1) return "sendNow";
+    return "";
+  }
+
+  function updateClocksAndLabels(){
+    const now = utcNowSec();
+    el.utcClock.textContent = fmtUTC(now);
+
+    const tzOffset = parseFloat(el.tzSelect.value || "0") || 0;
+    const localNow = now + tzOffset*3600;
+    el.localTimeLabel.textContent = "Local: " + fmtUTC(localNow);
+
+    const firstArrival = readArrivalSec();
+    const localArrival = firstArrival + tzOffset*3600;
+    el.localArrivalLabel.textContent = "Local: " + fmtUTC(localArrival);
+  }
+
+  function tick(){
+    const now = utcNowSec();
+    updateClocksAndLabels();
+
+    // update table rows + mobile cards
+    const nodes = document.querySelectorAll("[data-launch][data-arrival][data-march]");
+    nodes.forEach(node => {
+      const launchUtc = parseInt(node.getAttribute("data-launch"), 10);
+      const arrivalUtc = parseInt(node.getAttribute("data-arrival"), 10);
+      const march = Math.max(1, parseInt(node.getAttribute("data-march"), 10) || 1);
+      const name = node.getAttribute("data-name") || (node.querySelector("[data-remove]")?.getAttribute("data-remove") || "");
+
+      const launchIn = launchUtc - now;
+      const eta = arrivalUtc - now;
+
+      // sounds
+      if (name) maybeSound(name, launchUtc, launchIn);
+
+      const sendEl = node.querySelector(".sendCell");
+      if (sendEl){
+        sendEl.textContent = sendLabel(launchIn);
+        sendEl.className = sendEl.className.replace(/\b(sendSoon|sendNow)\b/g,"").trim();
+        const sc = sendClass(launchIn);
+        if (sc) sendEl.classList.add(sc);
+      }
+
+      const etaEl = node.querySelector(".etaCell");
+      if (etaEl){
+        etaEl.textContent = deltaLabel(eta);
+        etaEl.className = etaEl.className.replace(/\b(future|past|now)\b/g,"").trim();
+        etaEl.classList.add(deltaClass(eta));
+      }
+
+      // progress
+      const prog = Math.max(0, Math.min(1, (now - launchUtc)/march));
+      const pct = Math.round(prog*100);
+      const bar = node.querySelector(".bar");
+      if (bar) bar.style.width = pct + "%";
+      const pctLabel = node.querySelector(".pctLabel");
+      if (pctLabel) pctLabel.textContent = pct + "%";
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Events
+  // ─────────────────────────────────────────────────────────────
+  el.marchInterval.addEventListener("input", () => renderAll());
+  el.tzSelect.addEventListener("change", () => renderAll());
+
+  el.btnAdd.addEventListener("click", () => {
+    el.addRow.classList.toggle("open");
+    updateNewOrderOptions();
+    if (el.addRow.classList.contains("open")){
+      el.newName.focus();
+    }
+  });
+
+  el.btnAddSave.addEventListener("click", () => {
+    const name = (el.newName.value || "").trim();
+    const march = clampInt(el.newMarch.value, 1, 9999);
+    const order = clampInt(el.newOrder.value, 1, leaders.length + 1);
+    if (!name) return;
+
+    // if name exists, auto-unique
+    const exists = leaders.some(l => l.name.toLowerCase() === name.toLowerCase());
+    const finalName = exists ? (name + " " + Math.floor(Math.random()*90+10)) : name;
+
+    leaders.push({ name: finalName, march, order });
+    normalizeOrders();
+
+    el.newName.value = "";
+    el.newMarch.value = "";
+    el.addRow.classList.remove("open");
+    renderAll();
+  });
+
+  el.btnClear.addEventListener("click", () => {
+    leaders = [];
+    saveState();
+    renderAll();
+  });
+
+  // Order change + remove (delegated)
+  document.addEventListener("change", (e) => {
+    const t = e.target;
+    if (t && t.matches && t.matches("select[data-order-name]")){
+      const name = t.getAttribute("data-order-name");
+      setOrder(name, t.value);
+      renderAll();
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    const t = e.target;
+    if (t && t.matches && t.matches("[data-remove]")){
+      const name = t.getAttribute("data-remove");
+      removeLeader(name);
+    }
+  });
+
+  // Sound toggle
+  el.btnSound.addEventListener("click", async () => {
+    soundEnabled = !soundEnabled;
+    el.btnSound.textContent = soundEnabled ? "Sound: ON" : "Sound: OFF";
+    if (soundEnabled){
+      try{
+        const ctx = getAudio();
+        if (ctx.state === "suspended") await ctx.resume();
+        // tiny confirmation horn
+        playShortHorn();
+      }catch(_){}
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Utils
+  // ─────────────────────────────────────────────────────────────
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[c]));
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Boot
+  // ─────────────────────────────────────────────────────────────
+  populateTZ();
+  loadState();
+  updateNewOrderOptions();
+  renderAll();
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>
