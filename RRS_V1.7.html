@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -317,7 +318,24 @@
     white-space: nowrap;
     color: var(--text);
   }
-  .order-badge {
+  
+  .order-select {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.95rem;
+    padding: 6px 8px;
+    min-width: 64px;
+    outline: none;
+  }
+  .order-select:focus {
+    border-color: var(--green-dim);
+    box-shadow: 0 0 8px var(--green-glow);
+  }
+
+.order-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -556,7 +574,7 @@
       <table>
         <thead>
           <tr>
-            <th>Order</th>
+            <th>Arrival Order</th>
             <th>Leader</th>
             <th>March</th>
             <th>Rally Start UTC</th>
@@ -585,6 +603,8 @@ leaders = Array.isArray(leaders) ? leaders.map(l => ({
   ...l,
   rallySec: Number.isFinite(Number(l.rallySec)) ? Number(l.rallySec) : 300
 })) : [];
+leaders.sort((a, b) => a.order - b.order);
+leaders.forEach((leader, idx) => leader.order = idx + 1);
 let addLeaderRallySec = 300; // default 5 min for new leaders
 let soundOn = false;
 
@@ -775,7 +795,7 @@ function addLeader() {
   if (order < 1)   { alert('Order must be 1 or higher.'); return; }
 
   leaders.push({ id: Date.now(), name, marchSec: march, order, rallySec: addLeaderRallySec });
-  leaders.sort((a, b) => a.order - b.order);
+  normalizeOrders();
   save();
   renderTable();
 
@@ -793,6 +813,7 @@ function addLeader() {
 function removeLeader(id) {
   leaders = leaders.filter(l => l.id !== id);
   if (selectedLeaderId === id) selectedLeaderId = null;
+  normalizeOrders();
   save();
   renderTable();
   updateOrderHint();
@@ -805,6 +826,41 @@ function clearAll() {
     renderTable();
     updateOrderHint();
   }
+}
+
+
+function normalizeOrders() {
+  leaders.sort((a, b) => a.order - b.order);
+  leaders.forEach((leader, idx) => {
+    leader.order = idx + 1;
+  });
+}
+
+function changeLeaderOrder(id, newOrder) {
+  newOrder = parseInt(newOrder, 10);
+  if (!Number.isFinite(newOrder)) return;
+
+  leaders.sort((a, b) => a.order - b.order);
+  const currentIndex = leaders.findIndex(l => l.id === id);
+  if (currentIndex === -1) return;
+
+  const [moved] = leaders.splice(currentIndex, 1);
+  const targetIndex = Math.max(0, Math.min(leaders.length, newOrder - 1));
+  leaders.splice(targetIndex, 0, moved);
+
+  normalizeOrders();
+  save();
+  renderTable();
+  updateOrderHint();
+}
+
+function buildOrderOptions(selected) {
+  const total = leaders.length;
+  let html = '';
+  for (let i = 1; i <= total; i++) {
+    html += `<option value="${i}" ${i === selected ? 'selected' : ''}>${i}</option>`;
+  }
+  return html;
 }
 
 function save() {
@@ -859,7 +915,14 @@ function renderTable() {
   if (!leaders.length) { empty.style.display = 'block'; return; }
   empty.style.display = 'none';
 
-  leaders.forEach(leader => {
+  const sortedLeaders = [...leaders].sort((a, b) => {
+    const aTimes = firstArrival ? calcTimes(a, firstArrival, intervalSec) : null;
+    const bTimes = firstArrival ? calcTimes(b, firstArrival, intervalSec) : null;
+    if (aTimes && bTimes) return aTimes.rallyStart.getTime() - bTimes.rallyStart.getTime();
+    return a.order - b.order;
+  });
+
+  sortedLeaders.forEach(leader => {
     const times = firstArrival ? calcTimes(leader, firstArrival, intervalSec) : null;
 
     const rallyStr   = times ? fmtUTC(times.rallyStart)  : '--:--:--';
@@ -905,7 +968,11 @@ function renderTable() {
       renderTable();
     });
     tr.innerHTML = `
-      <td><span class="order-badge">${leader.order}</span></td>
+      <td>
+        <select class="order-select" onchange="changeLeaderOrder(${leader.id}, this.value)">
+          ${buildOrderOptions(leader.order)}
+        </select>
+      </td>
       <td>${leader.name}</td>
       <td>${fmtMarch(leader.marchSec)}<div class="field-sub">${formatRallyMinutes(Number(leader.rallySec) || 300)}</div></td>
       <td class="col-rally">${rallyStr}</td>
