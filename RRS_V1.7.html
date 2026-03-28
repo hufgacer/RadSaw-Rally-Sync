@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>RadSaw Rally Syncer — Forest War Room</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --green: #00ff88;
+    --green-dim: #00cc66;
+    --green-glow: rgba(0,255,136,0.25);
+    --amber: #ffaa00;
+    --red: #ff4444;
+    --bg: #050d07;
+    --bg2: #0a1a0e;
+    --bg3: #0f2414;
+    --border: rgba(0,255,136,0.18);
+    --text: #c8ffd4;
+    --text-dim: #5a8a66;
+    --rally-color: #ff6600;
+    --rally-glow: rgba(255,102,0,0.3);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Exo 2', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px);
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,136,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,136,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+
+  /* ── HEADER ── */
+  header { text-align: center; padding: 28px 0 20px; }
+  .title-main {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.5rem, 5vw, 2.8rem);
+    font-weight: 900;
+    color: var(--green);
+    text-shadow: 0 0 20px var(--green-glow), 0 0 40px rgba(0,255,136,0.1);
+    letter-spacing: 0.06em;
+  }
+  .title-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    letter-spacing: 0.25em;
+    margin-top: 4px;
+    text-transform: uppercase;
+  }
+
+  /* ── UTC CLOCK ── */
+  .utc-bar { text-align: center; margin: 10px 0 24px; }
+  #utcClock {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(2rem, 7vw, 3.5rem);
+    font-weight: 700;
+    color: var(--green);
+    text-shadow: 0 0 24px var(--green-glow);
+    letter-spacing: 0.1em;
+  }
+  .utc-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    letter-spacing: 0.3em;
+    margin-top: 2px;
+  }
+
+  /* ── PANELS ── */
+  .panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin-bottom: 18px;
+    box-shadow: 0 0 20px rgba(0,255,136,0.03);
+  }
+  .panel-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.35em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .config-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label {
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  .field-sub { font-size: 0.68rem; color: #3a6645; margin-top: 2px; }
+
+  input[type="number"], input[type="text"] {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1rem;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+  }
+  input:focus {
+    border-color: var(--green-dim);
+    box-shadow: 0 0 8px var(--green-glow);
+  }
+  input::placeholder {
+    font-style: italic;
+  }
+
+  /* ── TIME INPUTS ── */
+  .time-group { display: flex; flex-direction: column; gap: 4px; }
+  .time-row { display: flex; gap: 6px; align-items: flex-start; }
+  .time-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+  }
+  .time-slot input {
+    text-align: center;
+    padding: 9px 4px;
+    font-size: 1.1rem;
+    width: 100%;
+  }
+  .time-slot-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    text-align: center;
+  }
+  .time-colon {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.3rem;
+    color: var(--green);
+    font-weight: 700;
+    padding-top: 10px;
+    flex-shrink: 0;
+  }
+
+  .local-time {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  /* ── RALLY DURATION SELECTOR ── */
+  .rally-mini-selector {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .rally-mini-btn {
+    flex: 1;
+    padding: 8px 6px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.68rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+  .rally-mini-btn:hover {
+    border-color: var(--rally-color);
+    color: var(--rally-color);
+  }
+  .rally-mini-btn.selected {
+    background: rgba(255,102,0,0.15);
+    border-color: var(--rally-color);
+    color: var(--rally-color);
+    box-shadow: 0 0 10px rgba(255,102,0,0.15);
+  }
+
+  /* ── ADD LEADER PANEL ── */
+  .add-leader-grid {
+    display: grid;
+    grid-template-columns: 2fr 1.7fr 1fr;
+    gap: 14px;
+    align-items: start;
+  }
+  @media (max-width: 700px) {
+    .add-leader-grid { grid-template-columns: 1fr 1fr; }
+    .add-leader-grid .add-btn-wrap { grid-column: span 2; }
+  }
+
+  /* march / rally time inputs inside add leader — slightly compact */
+  .add-leader-grid .time-slot input {
+    font-size: 0.95rem;
+    padding: 8px 2px;
+  }
+  .add-leader-grid .time-colon {
+    font-size: 1.1rem;
+    padding-top: 9px;
+  }
+
+  .add-btn {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--green-dim);
+    color: var(--green);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    padding: 12px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 22px; /* align with inputs */
+  }
+  .add-btn:hover { background: rgba(0,255,136,0.1); box-shadow: 0 0 10px var(--green-glow); }
+
+  .actions-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+  .sound-btn, .clear-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .sound-btn:hover { border-color: var(--green-dim); color: var(--green); }
+  .clear-btn:hover { border-color: var(--red); color: var(--red); }
+
+  /* ── TABLE ── */
+  .table-section { margin-top: 8px; }
+  .table-header {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    color: var(--green);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .table-header::before { content: '⚔'; font-size: 1rem; }
+
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1rem;
+  }
+  thead th {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    white-space: nowrap;
+  }
+  tbody tr {
+    border-bottom: 1px solid rgba(0,255,136,0.07);
+    transition: background 0.15s;
+  }
+  tbody tr:hover { background: rgba(0,255,136,0.04); }
+  tbody td {
+    padding: 10px 12px;
+    vertical-align: middle;
+    white-space: nowrap;
+    color: var(--text);
+  }
+  .order-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px; height: 26px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    color: var(--green-dim);
+  }
+  .col-rally  { color: var(--rally-color); }
+  .col-arrival { color: var(--green); }
+  .col-countdown { color: var(--amber); font-size: 0.98rem; }
+
+  .progress-wrap {
+    width: 90px; height: 6px;
+    background: var(--bg3);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green-dim), var(--green));
+    border-radius: 3px;
+    transition: width 1s linear;
+    box-shadow: 0 0 6px var(--green-glow);
+  }
+
+  .del-btn {
+    background: none;
+    border: 1px solid #2a1a1a;
+    border-radius: 4px;
+    color: #553333;
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .del-btn:hover { border-color: var(--red); color: var(--red); background: rgba(255,68,68,0.08); }
+
+  .copy-target {
+    cursor: pointer;
+    transition: box-shadow 0.15s, border-color 0.15s, background 0.15s;
+  }
+  .copy-target:hover {
+    background: rgba(0,255,136,0.06);
+  }
+  .copy-target.selected {
+    outline: 1px solid rgba(255,170,0,0.55);
+    box-shadow: inset 0 0 0 1px rgba(255,170,0,0.25), 0 0 14px rgba(255,170,0,0.10);
+    background: rgba(255,170,0,0.06);
+  }
+
+  /* ── MOBILE CARDS ── */
+  .cards { display: none; flex-direction: column; gap: 12px; }
+  .leader-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .card-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.05rem;
+    color: var(--green);
+    letter-spacing: 0.05em;
+  }
+  .card-order { color: var(--text-dim); font-size: 0.88rem; }
+  .card-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.95rem;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .card-row span:last-child { color: var(--text); }
+  .card-rally  { color: var(--rally-color) !important; }
+  .card-arrival { color: var(--green) !important; }
+  .card-progress { margin-top: 8px; }
+
+  @media (max-width: 700px) {
+    .table-wrap { display: none; }
+    .cards { display: flex; }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    margin-top: 8px;
+  }
+
+  .tip {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-align: center;
+    margin-top: 14px;
+    letter-spacing: 0.08em;
+  }
+
+  footer {
+    text-align: center;
+    padding: 30px 0 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: #2a4a33;
+    letter-spacing: 0.2em;
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Header -->
+  <header>
+    <div class="title-main">⚔️ RadSaw Rally Syncer ⚔️</div>
+  </header>
+
+  <!-- UTC + Local Clocks -->
+  <div class="utc-bar">
+    <div id="utcClock">--:--:--</div>
+    <div class="utc-label">UTC · LIVE &nbsp;|&nbsp; <span id="localClockDisplay">--:--:--</span> LOCAL</div>
+  </div>
+
+  <!-- Config Panel -->
+  <div class="panel">
+    <div class="panel-title">Mission Configuration</div>
+    <div class="config-grid">
+
+      <!-- Target First Arrival -->
+      <div class="field">
+        <label>Target First Arrival (UTC)</label>
+        <div class="time-group">
+          <div class="time-row">
+            <div class="time-slot">
+              <input type="number" id="arrH" min="0" max="23" placeholder="00"/>
+              <div class="time-slot-label">HH</div>
+            </div>
+            <span class="time-colon">:</span>
+            <div class="time-slot">
+              <input type="number" id="arrM" min="0" max="59" placeholder="00"/>
+              <div class="time-slot-label">MM</div>
+            </div>
+            <span class="time-colon">:</span>
+            <div class="time-slot">
+              <input type="number" id="arrS" min="0" max="59" placeholder="00"/>
+              <div class="time-slot-label">SS</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- March Interval -->
+      <div class="field">
+        <label>March Interval (seconds)</label>
+        <input type="number" id="interval" value="5" min="1" placeholder="5"/>
+        <div class="field-sub">Gap between consecutive arrivals</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Add Leader Panel -->
+  <div class="panel">
+    <div class="panel-title">Add Leader</div>
+    <div class="add-leader-grid">
+
+      <!-- Name -->
+      <div class="field">
+        <label>Leader Name</label>
+        <input type="text" id="lName" placeholder="Insert Leader Name"/>
+        <div class="field-sub">&nbsp;</div>
+      </div>
+
+      <!-- March Duration HH:MM:SS -->
+      <div class="field">
+        <label>March Duration</label>
+        <div class="time-row">
+          <div class="time-slot">
+            <input type="number" id="lMH" min="0" max="99" placeholder="00"/>
+            <div class="time-slot-label">HH</div>
+          </div>
+          <span class="time-colon">:</span>
+          <div class="time-slot">
+            <input type="number" id="lMM" min="0" max="59" placeholder="00"/>
+            <div class="time-slot-label">MM</div>
+          </div>
+          <span class="time-colon">:</span>
+          <div class="time-slot">
+            <input type="number" id="lMS" min="0" max="59" placeholder="00"/>
+            <div class="time-slot-label">SS</div>
+          </div>
+        </div>
+        <div class="field-sub">Rally Duration</div>
+        <div class="rally-mini-selector">
+          <button type="button" class="rally-mini-btn" data-rally-sec="60" onclick="selectAddLeaderRally(60)">1 min</button>
+          <button type="button" class="rally-mini-btn selected" data-rally-sec="300" onclick="selectAddLeaderRally(300)">5 min</button>
+          <button type="button" class="rally-mini-btn" data-rally-sec="600" onclick="selectAddLeaderRally(600)">10 min</button>
+        </div>
+      </div>
+
+      <!-- Order -->
+      <div class="field">
+        <label>Order</label>
+        <input type="number" id="lOrder" min="1" placeholder="auto"/>
+        <div class="field-sub" id="orderHint">Next: #1</div>
+        <button class="add-btn" onclick="addLeader()">+ Add Leader</button>
+      </div>
+
+    </div>
+
+    <div class="actions-row">
+      <button class="sound-btn" id="soundBtn" onclick="toggleSound()">Sound: OFF</button>
+      <button class="clear-btn" onclick="clearAll()">Clear All</button>
+    </div>
+  </div>
+
+  <!-- Leader Table -->
+  <div class="table-section">
+    <div class="table-header">Leader Sync Table</div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Order</th>
+            <th>Leader</th>
+            <th>March</th>
+            <th>Rally Start UTC</th>
+            <th>Arrival UTC</th>
+            <th>Countdown</th>
+            <th>Progress</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="cards" id="mobileCards"></div>
+    <div class="empty-state" id="emptyState">// No leaders synced — add one above to begin coordination</div>
+  </div>
+
+  <div class="tip">Tip: double clicking on leader row will copy the instruction to clip board telling the leader when to start the rally.</div>
+  <footer>RADSAW RALLY SYNCER v1.7 · KINGSHOT FOREST WAR ROOM</footer>
+</div>
+
+<script>
+// ── STATE ──
+let leaders = JSON.parse(localStorage.getItem('rrs_leaders') || '[]');
+leaders = Array.isArray(leaders) ? leaders.map(l => ({
+  ...l,
+  rallySec: Number.isFinite(Number(l.rallySec)) ? Number(l.rallySec) : 300
+})) : [];
+let addLeaderRallySec = 300; // default 5 min for new leaders
+let soundOn = false;
+
+// ── HELPERS ──
+function padTwo(n) { return String(Math.floor(n)).padStart(2, '0'); }
+
+function fmtUTC(date) {
+  return `${padTwo(date.getUTCHours())}:${padTwo(date.getUTCMinutes())}:${padTwo(date.getUTCSeconds())}`;
+}
+
+function fmtLocal(date) {
+  return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+}
+
+function fmtDuration(totalSec) {
+  if (totalSec < 0) totalSec = 0;
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = Math.floor(totalSec % 60);
+  return `${padTwo(h)}:${padTwo(m)}:${padTwo(s)}`;
+}
+
+function fmtMarch(sec) {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (h > 0) return `${h}h ${padTwo(m)}m ${padTwo(s)}s`;
+  if (m > 0) return `${m}m ${padTwo(s)}s`;
+  return `${s}s`;
+}
+
+function getCountdownState(times, leader, now) {
+  if (!times) return { text: '--:--:--', cls: 'col-countdown' };
+
+  const rallySec = Number(leader.rallySec) || 300;
+  const secsToArrival = Math.round((times.arrival.getTime() - now) / 1000);
+  const secsToRally   = Math.round((times.rallyStart.getTime() - now) / 1000);
+  const launchEpoch   = times.rallyStart.getTime() + rallySec * 1000;
+  const secsToLaunch  = Math.round((launchEpoch - now) / 1000);
+
+  if (secsToArrival <= 0) {
+    return { text: 'ARRIVED', cls: 'col-arrival' };
+  }
+
+  if (secsToRally > 5) {
+    return { text: fmtDuration(secsToRally), cls: 'col-countdown' };
+  }
+
+  if (secsToRally > 0) {
+    return { text: `${secsToRally} CALL RALLY NOW!`, cls: 'col-rally' };
+  }
+
+  if (secsToLaunch > 0) {
+    return { text: `CALL RALLY NOW! (Rally Timer ${fmtDuration(secsToLaunch)})`, cls: 'col-rally' };
+  }
+
+  return { text: `MARCHING (${fmtDuration(secsToArrival)})`, cls: 'col-arrival' };
+}
+
+// ── AUTO-FOCUS & CLAMP: HH → MM → SS ──
+function wireTimeFocus(hId, mId, sId, maxH, onChange) {
+  const hEl = document.getElementById(hId);
+  const mEl = document.getElementById(mId);
+  const sEl = document.getElementById(sId);
+
+  function clean(el) {
+    el.value = String(el.value || '').replace(/\D/g, '').slice(0, 2);
+  }
+
+  function clamp(el, max) {
+    let v = parseInt(el.value, 10);
+    if (isNaN(v)) return;
+    if (v < 0) v = 0;
+    if (v > max) v = max;
+    el.value = String(v);
+  }
+
+  function padField(el, max) {
+    let v = parseInt(el.value, 10);
+    if (isNaN(v)) v = 0;
+    if (v < 0) v = 0;
+    if (v > max) v = max;
+    el.value = String(v).padStart(2, '0');
+  }
+
+  hEl.addEventListener('input', () => {
+    clean(hEl);
+    clamp(hEl, maxH);
+    if (onChange) onChange();
+    if (hEl.value.length >= 2) {
+      padField(hEl, maxH);
+      mEl.focus();
+      mEl.select();
+    }
+  });
+
+  mEl.addEventListener('input', () => {
+    clean(mEl);
+    clamp(mEl, 59);
+    if (onChange) onChange();
+    if (mEl.value.length >= 2) {
+      padField(mEl, 59);
+      sEl.focus();
+      sEl.select();
+    }
+  });
+
+  sEl.addEventListener('input', () => {
+    clean(sEl);
+    clamp(sEl, 59);
+    if (onChange) onChange();
+    if (sEl.value.length >= 2) {
+      padField(sEl, 59);
+    }
+  });
+
+  [hEl, mEl, sEl].forEach((el, idx) => {
+    const max = idx === 0 ? maxH : 59;
+    el.addEventListener('blur', () => {
+      if (el.value === '') el.value = '00';
+      padField(el, max);
+      if (onChange) onChange();
+    });
+    el.addEventListener('focus', () => el.select());
+  });
+}
+
+wireTimeFocus('arrH', 'arrM', 'arrS', 23, renderTable);
+wireTimeFocus('lMH',  'lMM',  'lMS',  99, renderTable);
+
+// ── PARSE TARGET ARRIVAL ──
+function getTargetArrival() {
+  const h = parseInt(document.getElementById('arrH').value);
+  const m = parseInt(document.getElementById('arrM').value);
+  const s = parseInt(document.getElementById('arrS').value);
+  if (isNaN(h) || isNaN(m) || isNaN(s)) return null;
+  const now = new Date();
+  let t = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), h, m, s));
+  if (t < now) t = new Date(t.getTime() + 86400000); // roll to next day
+  return t;
+}
+
+// ── CALC PER-LEADER TIMES ──
+// Arrival UTC  = firstArrival + (order-1) * intervalSec
+// Rally Start  = Arrival UTC  - marchSec  - rallyOffsetSec
+function calcTimes(leader, firstArrival, intervalSec) {
+  const rallySec = Number(leader.rallySec) || 300;
+  const arrivalEpoch    = firstArrival.getTime() + (leader.order - 1) * intervalSec * 1000;
+  const rallyStartEpoch = arrivalEpoch - (leader.marchSec + rallySec) * 1000;
+  return {
+    arrival: new Date(arrivalEpoch),
+    rallyStart: new Date(rallyStartEpoch)
+  };
+}
+
+function selectAddLeaderRally(sec) {
+  addLeaderRallySec = sec;
+  document.querySelectorAll('.rally-mini-btn').forEach(btn => {
+    btn.classList.toggle('selected', Number(btn.dataset.rallySec) === sec);
+  });
+  renderTable();
+}
+
+// ── ORDER AUTO-SUGGEST ──
+function updateOrderHint() {
+  const next = leaders.length + 1;
+  document.getElementById('orderHint').textContent = `Next: #${next}`;
+  const el = document.getElementById('lOrder');
+  if (!el.dataset.userChanged) el.placeholder = String(next);
+}
+
+document.getElementById('lOrder').addEventListener('input', function () {
+  this.dataset.userChanged = this.value ? 'yes' : '';
+});
+
+// ── ADD LEADER ──
+function addLeader() {
+  const name  = document.getElementById('lName').value.trim();
+  const mH    = parseInt(document.getElementById('lMH').value) || 0;
+  const mM    = parseInt(document.getElementById('lMM').value) || 0;
+  const mS    = parseInt(document.getElementById('lMS').value) || 0;
+  const march = mH * 3600 + mM * 60 + mS;
+  const orderEl = document.getElementById('lOrder');
+  const order = orderEl.value ? parseInt(orderEl.value) : leaders.length + 1;
+
+  if (!name)       { alert('Please enter a leader name.'); return; }
+  if (march < 1)   { alert('Please enter a march duration.'); return; }
+  if (order < 1)   { alert('Order must be 1 or higher.'); return; }
+
+  leaders.push({ id: Date.now(), name, marchSec: march, order, rallySec: addLeaderRallySec });
+  leaders.sort((a, b) => a.order - b.order);
+  save();
+  renderTable();
+
+  // Reset fields
+  document.getElementById('lName').value = '';
+  document.getElementById('lMH').value   = '';
+  document.getElementById('lMM').value   = '';
+  document.getElementById('lMS').value   = '';
+  orderEl.value = '';
+  delete orderEl.dataset.userChanged;
+  selectAddLeaderRally(300);
+  updateOrderHint();
+}
+
+function removeLeader(id) {
+  leaders = leaders.filter(l => l.id !== id);
+  if (selectedLeaderId === id) selectedLeaderId = null;
+  save();
+  renderTable();
+  updateOrderHint();
+}
+
+function clearAll() {
+  if (!leaders.length || confirm('Clear all leaders?')) {
+    leaders = [];
+    save();
+    renderTable();
+    updateOrderHint();
+  }
+}
+
+function save() {
+  leaders = leaders.map(l => ({
+    ...l,
+    rallySec: Number.isFinite(Number(l.rallySec)) ? Number(l.rallySec) : 300
+  }));
+  localStorage.setItem('rrs_leaders', JSON.stringify(leaders));
+}
+
+
+let selectedLeaderId = null;
+
+function formatRallyMinutes(sec) {
+  const mins = Math.round(sec / 60);
+  return `${mins} minute rally`;
+}
+
+function buildCopyInstruction(leader, times) {
+  if (!times) return null;
+  const rallySec = Number(leader.rallySec) || 300;
+  return `${leader.name} call a ${formatRallyMinutes(rallySec)} at exactly ${fmtUTC(times.rallyStart)} UTC.`;
+}
+
+async function copyLeaderInstruction(leader, times) {
+  const msg = buildCopyInstruction(leader, times);
+  if (!msg) return;
+  try {
+    await navigator.clipboard.writeText(msg);
+  } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = msg;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  }
+}
+
+// ── RENDER TABLE ──
+function renderTable() {
+  const tbody  = document.getElementById('tableBody');
+  const cards  = document.getElementById('mobileCards');
+  const empty  = document.getElementById('emptyState');
+  const intervalSec  = parseInt(document.getElementById('interval').value) || 5;
+  const firstArrival = getTargetArrival();
+  const now = Date.now();
+
+  tbody.innerHTML = '';
+  cards.innerHTML = '';
+
+  if (!leaders.length) { empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  leaders.forEach(leader => {
+    const times = firstArrival ? calcTimes(leader, firstArrival, intervalSec) : null;
+
+    const rallyStr   = times ? fmtUTC(times.rallyStart)  : '--:--:--';
+    const rallyLocal = times ? fmtLocal(times.rallyStart) : '--:--:--';
+    const arrStr     = times ? fmtUTC(times.arrival)      : '--:--:--';
+    const arrLocal   = times ? fmtLocal(times.arrival)    : '--:--:--';
+
+    let countdownStr = '--:--:--';
+    let countdownClass = 'col-countdown';
+    let pct = 0;
+
+    if (times) {
+      const secsToArrival = Math.round((times.arrival.getTime() - now) / 1000);
+      const secsToRally   = Math.round((times.rallyStart.getTime() - now) / 1000);
+      const countdownState = getCountdownState(times, leader, now);
+      countdownStr = countdownState.text;
+      countdownClass = countdownState.cls;
+
+      if (secsToArrival <= 0) {
+        pct = 100;
+      } else if (secsToRally > 0) {
+        pct = 0;
+      } else {
+        const elapsed = Math.abs(secsToRally);
+        pct = Math.min(100, Math.max(0, (elapsed / (leader.marchSec + (Number(leader.rallySec) || 300))) * 100));
+      }
+    }
+
+    // ── Desktop row ──
+    const tr = document.createElement('tr');
+    tr.className = 'copy-target' + (selectedLeaderId === leader.id ? ' selected' : '');
+    if (times) tr.title = 'Double click to copy rally instruction';
+    tr.dataset.leaderId = leader.id;
+    tr.addEventListener('click', (e) => {
+      if (e.target.closest('.del-btn')) return;
+      selectedLeaderId = leader.id;
+      renderTable();
+    });
+    tr.addEventListener('dblclick', async (e) => {
+      if (e.target.closest('.del-btn')) return;
+      selectedLeaderId = leader.id;
+      await copyLeaderInstruction(leader, times);
+      renderTable();
+    });
+    tr.innerHTML = `
+      <td><span class="order-badge">${leader.order}</span></td>
+      <td>${leader.name}</td>
+      <td>${fmtMarch(leader.marchSec)}<div class="field-sub">${formatRallyMinutes(Number(leader.rallySec) || 300)}</div></td>
+      <td class="col-rally">${rallyStr}</td>
+      <td class="col-arrival">${arrStr}</td>
+      <td class="${countdownClass}">${countdownStr}</td>
+      <td>
+        <div class="progress-wrap">
+          <div class="progress-bar" style="width:${pct}%"></div>
+        </div>
+      </td>
+      <td><button class="del-btn" onclick="removeLeader(${leader.id})">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+
+    // ── Mobile card ──
+    const card = document.createElement('div');
+    card.className = 'leader-card copy-target' + (selectedLeaderId === leader.id ? ' selected' : '');
+    if (times) card.title = 'Double tap or double click to copy rally instruction';
+    card.dataset.leaderId = leader.id;
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.del-btn')) return;
+      selectedLeaderId = leader.id;
+      renderTable();
+    });
+    card.addEventListener('dblclick', async (e) => {
+      if (e.target.closest('.del-btn')) return;
+      selectedLeaderId = leader.id;
+      await copyLeaderInstruction(leader, times);
+      renderTable();
+    });
+    card.innerHTML = `
+      <div class="card-header">
+        <div class="card-name">${leader.name}</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="card-order">Order #${leader.order} · ${fmtMarch(leader.marchSec)} · ${formatRallyMinutes(Number(leader.rallySec) || 300)}</div>
+          <button class="del-btn" onclick="removeLeader(${leader.id})">✕</button>
+        </div>
+      </div>
+      <div class="card-row"><span>Rally Start UTC</span><span class="card-rally">${rallyStr}</span></div>
+      <div class="card-row"><span>Rally Start Local</span><span class="card-rally">${rallyLocal}</span></div>
+      <div class="card-row"><span>Arrival UTC</span><span class="card-arrival">${arrStr}</span></div>
+      <div class="card-row"><span>Arrival Local</span><span class="card-arrival">${arrLocal}</span></div>
+      <div class="card-row"><span>Countdown</span><span class="${countdownClass}">${countdownStr}</span></div>
+      <div class="card-progress">
+        <div class="progress-wrap" style="width:100%">
+          <div class="progress-bar" style="width:${pct}%"></div>
+        </div>
+      </div>
+    `;
+    cards.appendChild(card);
+  });
+}
+
+// ── MAIN TICK ──
+function tick() {
+  const now = new Date();
+
+  document.getElementById('utcClock').textContent        = fmtUTC(now);
+  document.getElementById('localClockDisplay').textContent = fmtLocal(now);
+
+  const firstArrival = getTargetArrival();
+
+  renderTable();
+}
+
+// ── SOUND ──
+let audioCtx = null;
+function playBeep(freq, vol) {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc  = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.4);
+  } catch(e) {}
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  document.getElementById('soundBtn').textContent = soundOn ? 'Sound: ON' : 'Sound: OFF';
+  if (soundOn) playBeep(440, 0.2);
+}
+
+// ── INPUT LISTENERS ──
+document.getElementById('interval').addEventListener('input', renderTable);
+
+// ── INIT ──
+updateOrderHint();
+renderTable();
+setInterval(tick, 1000);
+tick();
+</script>
+</body>
+</html>
