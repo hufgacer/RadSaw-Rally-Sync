@@ -512,6 +512,40 @@
     background: rgba(255,170,0,0.06);
   }
 
+
+  .panel-collapsible-toggle {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    margin: 0 0 16px 0;
+    text-align: center;
+  }
+  .panel-collapsible-toggle .panel-title {
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .panel-collapse-icon {
+    font-size: 0.9rem;
+    color: var(--green);
+    transition: transform 0.2s ease;
+  }
+  .panel-collapsible.collapsed .panel-collapse-icon {
+    transform: rotate(-90deg);
+  }
+  .panel-collapsible-body {
+    display: block;
+  }
+  .panel-collapsible.collapsed .panel-collapsible-body {
+    display: none;
+  }
+
 </style>
 </head>
 <body>
@@ -625,46 +659,49 @@
       <button class="clear-btn" onclick="clearAll()">Clear All</button>
     </div>
   </div>
-
-
   <!-- Leader History Panel -->
-  <div class="panel">
-    <div class="panel-title">Leader History</div>
+  <div class="panel panel-collapsible" id="leaderHistoryPanel">
+    <button class="panel-collapsible-toggle" type="button" onclick="toggleLeaderHistoryPanel()">
+      <div class="panel-title">Leader History <span class="panel-collapse-icon">▼</span></div>
+    </button>
 
-    <div class="history-grid">
-      <div class="field">
-        <label>Historical Leader</label>
-        <select id="historySelect" class="order-select" style="width:100%;" onchange="loadHistoryLeaderFromDropdown(this.value, false)">
-          <option value="">Select Historical Leader</option>
-        </select>
+    <div class="panel-collapsible-body">
+      <div class="history-grid">
+        <div class="field">
+          <label>Historical Leader</label>
+          <select id="historySelect" class="order-select" style="width:100%;" onchange="loadHistoryLeaderFromDropdown(this.value, false)">
+            <option value="">Select Historical Leader</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Stored March Time</label>
+          <input type="text" id="historyMarchPreview" placeholder="--:--:--" readonly />
+        </div>
+
+        <div class="field">
+          <label>&nbsp;</label>
+          <button class="clear-btn" type="button" onclick="addSelectedHistoryLeader()">Add Selected</button>
+        </div>
       </div>
 
-      <div class="field">
-        <label>Stored March Time</label>
-        <input type="text" id="historyMarchPreview" placeholder="--:--:--" readonly />
+      <div class="history-table-wrap">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Leader</th>
+              <th>March Time</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody"></tbody>
+        </table>
       </div>
 
-      <div class="field">
-        <label>&nbsp;</label>
-        <button class="clear-btn" type="button" onclick="addSelectedHistoryLeader()">Add Selected</button>
-      </div>
+      <div class="tip">Tip: double click a historical leader to populate the Add Leader panel.</div>
     </div>
-
-    <div class="history-table-wrap">
-      <table class="history-table">
-        <thead>
-          <tr>
-            <th>Leader</th>
-            <th>March Time</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="historyTableBody"></tbody>
-      </table>
-    </div>
-
-    <div class="tip">Tip: double click a historical leader to populate the Add Leader panel.</div>
   </div>
+
 
   <!-- Leader Table -->
   <div class="table-section">
@@ -836,6 +873,19 @@ function wireTimeFocus(hId, mId, sId, maxH, onChange) {
 
 wireTimeFocus('arrH', 'arrM', 'arrS', 23, renderTable);
 wireTimeFocus('lMH',  'lMM',  'lMS',  99, renderTable);
+
+function setDefaultArrivalToCurrentUTC() {
+  const now = new Date();
+  const arrH = document.getElementById('arrH');
+  const arrM = document.getElementById('arrM');
+  const arrS = document.getElementById('arrS');
+  if (!arrH || !arrM || !arrS) return;
+  if (!arrH.value && !arrM.value && !arrS.value) {
+    arrH.value = padTwo(now.getUTCHours());
+    arrM.value = padTwo(now.getUTCMinutes());
+    arrS.value = padTwo(now.getUTCSeconds());
+  }
+}
 
 // ── PARSE TARGET ARRIVAL ──
 function getTargetArrival() {
@@ -1171,11 +1221,32 @@ function deleteHistoryLeader(name) {
   renderHistoryPanel();
 }
 
+function deleteSelectedHistoryLeader() {
+  if (!selectedHistoryLeaderName) return;
+  if (!confirm(`Delete historical leader "${selectedHistoryLeaderName}"?`)) return;
+  deleteHistoryLeader(selectedHistoryLeaderName);
+}
 
 
 function addSelectedHistoryLeader() {
   if (!selectedHistoryLeaderName) return;
   populateAddLeaderFromHistory(selectedHistoryLeaderName);
+}
+
+
+function toggleLeaderHistoryPanel() {
+  const panel = document.getElementById('leaderHistoryPanel');
+  if (!panel) return;
+  const willCollapse = !panel.classList.contains('collapsed');
+  panel.classList.toggle('collapsed', willCollapse);
+  localStorage.setItem('rrs_history_collapsed', willCollapse ? '1' : '0');
+}
+
+function applyLeaderHistoryPanelState() {
+  const panel = document.getElementById('leaderHistoryPanel');
+  if (!panel) return;
+  const collapsed = localStorage.getItem('rrs_history_collapsed') === '1';
+  panel.classList.toggle('collapsed', collapsed);
 }
 
 function renderHistoryPanel() {
@@ -1489,22 +1560,11 @@ function toggleSound() {
 // ── INPUT LISTENERS ──
 
 // ── INIT ──
-(function setDefaultTargetArrivalToCurrentUTC() {
-  const now = new Date();
-  const arrH = document.getElementById('arrH');
-  const arrM = document.getElementById('arrM');
-  const arrS = document.getElementById('arrS');
-  if (!arrH.value && !arrM.value && !arrS.value) {
-    arrH.value = padTwo(now.getUTCHours());
-    arrM.value = padTwo(now.getUTCMinutes());
-    arrS.value = padTwo(now.getUTCSeconds());
-  }
-})();
-
 setDefaultArrivalToCurrentUTC();
 updateOrderHint();
 renderTable();
 renderHistoryPanel();
+applyLeaderHistoryPanelState();
 updateLiveCells();
 setInterval(tick, 1000);
 tick();
