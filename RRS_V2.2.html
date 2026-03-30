@@ -1,0 +1,2095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>RadSaw Rally Syncer v2.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --green: #00ff88;
+    --green-dim: #00cc66;
+    --green-glow: rgba(0,255,136,0.25);
+    --amber: #ffaa00;
+    --red: #ff4444;
+    --bg: #050d07;
+    --bg2: #0a1a0e;
+    --bg3: #0f2414;
+    --border: rgba(0,255,136,0.18);
+    --text: #c8ffd4;
+    --text-dim: #5a8a66;
+    --rally-color: #ff6600;
+    --rally-glow: rgba(255,102,0,0.3);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Exo 2', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px);
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,136,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,136,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper { position: relative; z-index: 1; max-width: 1420px; margin: 0 auto; padding: 18px 10px 60px; }
+
+  /* ── HEADER ── */
+  header { text-align: center; padding: 28px 0 20px; }
+  .title-main {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.5rem, 5vw, 2.8rem);
+    font-weight: 900;
+    color: var(--green);
+    text-shadow: 0 0 20px var(--green-glow), 0 0 40px rgba(0,255,136,0.1);
+    letter-spacing: 0.06em;
+  }
+  .title-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    letter-spacing: 0.25em;
+    margin-top: 4px;
+    text-transform: uppercase;
+  }
+
+  /* ── UTC CLOCK ── */
+  .utc-bar { text-align: center; margin: 10px 0 24px; }
+  #utcClock {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(2rem, 7vw, 3.5rem);
+    font-weight: 700;
+    color: var(--green);
+    text-shadow: 0 0 24px var(--green-glow);
+    letter-spacing: 0.1em;
+  }
+  .utc-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    letter-spacing: 0.3em;
+    margin-top: 2px;
+  }
+
+  /* ── PANELS ── */
+  .panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin-bottom: 18px;
+    box-shadow: 0 0 20px rgba(0,255,136,0.03);
+  }
+  .panel-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.35em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+  }
+
+  .config-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label {
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  .field-sub {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase; font-size: 0.68rem; color: #3a6645; margin-top: 2px; }
+
+  input[type="number"], input[type="text"] {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1rem;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+  }
+  input:focus {
+    border-color: var(--green-dim);
+    box-shadow: 0 0 8px var(--green-glow);
+  }
+  input::placeholder {
+    font-style: italic;
+  }
+
+  /* ── TIME INPUTS ── */
+  .time-group { display: flex; flex-direction: column; gap: 4px; }
+  .time-row { display: flex; gap: 6px; align-items: flex-start; }
+  .time-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+  }
+  .time-slot input {
+    text-align: center;
+    padding: 9px 4px;
+    font-size: 1.1rem;
+    width: 100%;
+  }
+  .time-slot-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    text-align: center;
+  }
+  .time-colon {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.3rem;
+    color: var(--green);
+    font-weight: 700;
+    padding-top: 10px;
+    flex-shrink: 0;
+  }
+
+  .local-time {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  /* ── RALLY DURATION SELECTOR ── */
+  .rally-mini-selector {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .rally-mini-btn {
+    flex: 1;
+    padding: 8px 6px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.68rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+  .rally-mini-btn:hover {
+    border-color: var(--rally-color);
+    color: var(--rally-color);
+  }
+  .rally-mini-btn.selected {
+    background: rgba(255,102,0,0.15);
+    border-color: var(--rally-color);
+    color: var(--rally-color);
+    box-shadow: 0 0 10px rgba(255,102,0,0.15);
+  }
+
+  /* ── ADD LEADER PANEL ── */
+  .add-leader-grid {
+    display: grid;
+    grid-template-columns: 2fr 1.7fr 1fr;
+    gap: 14px;
+    align-items: start;
+  }
+  @media (max-width: 700px) {
+    .add-leader-grid { grid-template-columns: 1fr 1fr; }
+    .add-leader-grid .add-btn-wrap { grid-column: span 2; }
+  }
+
+  /* march / rally time inputs inside add leader — slightly compact */
+  .add-leader-grid .time-slot input {
+    font-size: 0.95rem;
+    padding: 8px 2px;
+  }
+  .add-leader-grid .time-colon {
+    font-size: 1.1rem;
+    padding-top: 9px;
+  }
+
+  .add-btn {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--green-dim);
+    color: var(--green);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    padding: 12px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 22px; /* align with inputs */
+  }
+  .add-btn:hover { background: rgba(0,255,136,0.1); box-shadow: 0 0 10px var(--green-glow); }
+
+  .actions-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+  .sound-btn, .clear-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .sound-btn:hover { border-color: var(--green-dim); color: var(--green); }
+  .clear-btn:hover { border-color: var(--red); color: var(--red); }
+
+  .copy-plan-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 16px;
+  }
+  .copy-plan-btn {
+    background: var(--bg3);
+    border: 1px solid var(--green-dim);
+    border-radius: 6px;
+    color: var(--green);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    padding: 10px 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .copy-plan-btn:hover {
+    background: rgba(0,255,136,0.1);
+    box-shadow: 0 0 10px var(--green-glow);
+  }
+
+  .instruction-list {
+    display: grid;
+    gap: 12px;
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.86rem;
+    line-height: 1.65;
+  }
+  .instruction-item {
+    background: rgba(0,255,136,0.03);
+    border: 1px solid rgba(0,255,136,0.08);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .instruction-item strong {
+    color: var(--green);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+
+  /* ── ENEMY MARCHES ── */
+  .panel-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .panel-topbar .panel-title {
+    margin-bottom: 0;
+    flex: 1;
+  }
+  .enemy-add-btn {
+    background: var(--bg3);
+    border: 1px solid var(--rally-color);
+    color: var(--rally-color);
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    font-family: 'Orbitron', monospace;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .enemy-add-btn:hover {
+    box-shadow: 0 0 10px var(--rally-glow);
+    background: rgba(255,102,0,0.08);
+  }
+  .enemy-empty-state {
+    text-align: center;
+    padding: 22px 16px;
+    color: var(--text-dim);
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.82rem;
+    letter-spacing: 0.06em;
+  }
+  .enemy-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .enemy-card {
+    background: rgba(255,102,0,0.05);
+    border: 1px solid rgba(255,102,0,0.2);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 0 18px rgba(255,102,0,0.05);
+  }
+  #enemyMarchesPanel .field label,
+  #enemyMarchesPanel .field-sub,
+  #enemyMarchesPanel .tip,
+  #enemyMarchesPanel .time-slot-label,
+  #enemyMarchesPanel .enemy-empty-state,
+  #enemyMarchesPanel .enemy-status-label {
+    color: #ff9a9a;
+  }
+  #enemyMarchesPanel input[type="text"],
+  #enemyMarchesPanel input[type="number"] {
+    color: #ff7b7b;
+    border-color: rgba(255,68,68,0.22);
+  }
+  #enemyMarchesPanel input[type="text"]::placeholder,
+  #enemyMarchesPanel input[type="number"]::placeholder {
+    color: #c96b6b;
+  }
+  #enemyMarchesPanel .time-colon,
+  #enemyMarchesPanel .panel-collapse-icon,
+  #enemyMarchesPanel .enemy-status-value {
+    color: #ff5c5c;
+  }
+  .enemy-card-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr auto;
+    gap: 14px;
+    align-items: start;
+  }
+  .enemy-card .time-slot input {
+    font-size: 0.95rem;
+    padding: 8px 2px;
+  }
+  .enemy-card .time-colon {
+    color: var(--rally-color);
+    padding-top: 9px;
+  }
+  .enemy-status-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .enemy-status-box {
+    background: var(--bg3);
+    border: 1px solid rgba(255,102,0,0.18);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .enemy-status-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .enemy-status-value {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--rally-color);
+    font-size: 1rem;
+  }
+  .enemy-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 22px;
+  }
+  .enemy-btn {
+    flex: 1;
+    background: none;
+    border: 1px solid #2a1a1a;
+    border-radius: 4px;
+    color: var(--red);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+  .enemy-btn:hover {
+    border-color: var(--red);
+    color: var(--red);
+    background: rgba(255,68,68,0.08);
+    box-shadow: 0 0 6px rgba(255,68,68,0.15);
+  }
+  @media (max-width: 900px) {
+    .enemy-card-grid { grid-template-columns: 1fr 1fr; }
+    .enemy-action-wrap { grid-column: span 2; }
+    .enemy-actions { margin-top: 0; }
+    .enemy-btn { width: 100%; }
+  }
+  @media (max-width: 640px) {
+    .enemy-card-grid, .enemy-status-grid { grid-template-columns: 1fr; }
+    .enemy-action-wrap { grid-column: auto; }
+  }
+
+  /* ── TABLE ── */
+  .table-section { margin-top: 8px; }
+  .table-header {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    color: var(--green);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-align: center;
+  }
+  .table-header::before { content: '⚔'; font-size: 1rem; }
+
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    min-width: 1180px;
+    border-collapse: collapse;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1rem;
+  }
+  thead th {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    padding: 10px 10px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    white-space: nowrap;
+  }
+  tbody tr {
+    border-bottom: 1px solid rgba(0,255,136,0.07);
+    transition: background 0.15s;
+  }
+  tbody tr:hover { background: rgba(0,255,136,0.04); }
+  tbody td {
+    padding: 10px 10px;
+    vertical-align: middle;
+    white-space: nowrap;
+    color: var(--text);
+  }
+  
+  .order-select {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.95rem;
+    padding: 6px 8px;
+    min-width: 64px;
+    outline: none;
+  }
+  .order-select:focus {
+    border-color: var(--green-dim);
+    box-shadow: 0 0 8px var(--green-glow);
+  }
+
+.order-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px; height: 26px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    color: var(--green-dim);
+  }
+  .col-rally  { color: var(--rally-color); }
+  .col-arrival { color: var(--green); }
+  .col-countdown { color: var(--amber); font-size: 0.98rem; }
+
+  .progress-wrap {
+    width: 90px; height: 6px;
+    background: var(--bg3);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green-dim), var(--green));
+    border-radius: 3px;
+    transition: width 1s linear;
+    box-shadow: 0 0 6px var(--green-glow);
+  }
+
+  .del-btn {
+    background: none;
+    border: 1px solid #2a1a1a;
+    border-radius: 4px;
+    color: #553333;
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .del-btn:hover { border-color: var(--red); color: var(--red); background: rgba(255,68,68,0.08); }
+
+  .copy-target {
+    cursor: pointer;
+    transition: box-shadow 0.15s, border-color 0.15s, background 0.15s;
+  }
+  .copy-target:hover {
+    background: rgba(0,255,136,0.06);
+  }
+  .copy-target.selected {
+    outline: 1px solid rgba(255,170,0,0.55);
+    box-shadow: inset 0 0 0 1px rgba(255,170,0,0.25), 0 0 14px rgba(255,170,0,0.10);
+    background: rgba(255,170,0,0.06);
+  }
+
+  /* ── MOBILE CARDS ── */
+  .cards { display: none; flex-direction: column; gap: 12px; }
+  .leader-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .card-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.05rem;
+    color: var(--green);
+    letter-spacing: 0.05em;
+  }
+  .card-order { color: var(--text-dim); font-size: 0.88rem; }
+  .card-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.95rem;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .card-row span:last-child { color: var(--text); }
+  .card-rally  { color: var(--rally-color) !important; }
+  .card-arrival { color: var(--green) !important; }
+  .card-progress { margin-top: 8px; }
+
+  @media (max-width: 700px) {
+    .table-wrap { display: none; }
+    .cards { display: flex; }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    margin-top: 8px;
+  }
+
+  .tip {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-align: center;
+    margin-top: 14px;
+    letter-spacing: 0.08em;
+  }
+
+  footer {
+    text-align: center;
+    padding: 30px 0 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: #2a4a33;
+    letter-spacing: 0.2em;
+  }
+
+  .history-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr auto;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .history-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg2);
+  }
+  .history-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 520px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.96rem;
+  }
+  .history-table th, .history-table td {
+    padding: 10px 10px;
+    border-bottom: 1px solid rgba(0,255,136,0.07);
+    white-space: nowrap;
+  }
+  .history-table th {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    text-align: left;
+  }
+  .history-row {
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .history-row:hover {
+    background: rgba(0,255,136,0.05);
+  }
+  .history-row.selected {
+    outline: 1px solid rgba(255,170,0,0.55);
+    box-shadow: inset 0 0 0 1px rgba(255,170,0,0.25);
+    background: rgba(255,170,0,0.06);
+  }
+
+
+  .panel-collapsible-toggle {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    margin: 0 0 16px 0;
+    text-align: center;
+  }
+  .panel-collapsible-toggle .panel-title {
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .panel-collapse-icon {
+    font-size: 0.9rem;
+    color: var(--green);
+    transition: transform 0.2s ease;
+  }
+  .panel-collapsible.collapsed .panel-collapse-icon {
+    transform: rotate(-90deg);
+  }
+  .panel-collapsible-body {
+    display: block;
+  }
+  .panel-collapsible.collapsed .panel-collapsible-body {
+    display: none;
+  }
+
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Header -->
+  <header>
+    <div class="title-main">⚔️ RadSaw Rally Syncer ⚔️</div>
+  </header>
+
+  <!-- UTC + Local Clocks -->
+  <div class="utc-bar">
+    <div id="utcClock">--:--:--</div>
+    <div class="utc-label">UTC · LIVE &nbsp;|&nbsp; <span id="localClockDisplay">--:--:--</span> LOCAL</div>
+  </div>
+
+  <!-- Config Panel -->
+  <div class="panel">
+    <div class="panel-title">Mission Configuration</div>
+    <div class="config-grid">
+
+      <!-- Target First Arrival -->
+      <div class="field">
+        <label style="text-align:center;">Target First Arrival (UTC)</label>
+        <div class="time-group">
+          <div class="time-row">
+            <div class="time-slot">
+              <input type="number" id="arrH" min="0" max="23" placeholder="00" title="Set the UTC hour when the first leader should arrive"/>
+              <div class="time-slot-label">HH</div>
+            </div>
+            <span class="time-colon">:</span>
+            <div class="time-slot">
+              <input type="number" id="arrM" min="0" max="59" placeholder="00" title="Set the UTC minute when the first leader should arrive"/>
+              <div class="time-slot-label">MM</div>
+            </div>
+            <span class="time-colon">:</span>
+            <div class="time-slot">
+              <input type="number" id="arrS" min="0" max="59" placeholder="00" title="Set the UTC second when the first leader should arrive"/>
+              <div class="time-slot-label">SS</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+    </div>
+  </div>
+
+  <!-- Add Leader Panel -->
+  <div class="panel">
+    <div class="panel-title">Add Leader</div>
+    <div class="add-leader-grid">
+
+      <!-- Name -->
+      <div class="field">
+        <label>Leader Name</label>
+        <input type="text" id="lName" placeholder="Insert Leader Name" title="Enter the name of the rally leader you want to schedule"/>
+        <div class="field-sub" style="margin-top:8px;">March Interval Gap</div>
+        <select id="lGap" class="order-select" style="width:100%; margin-top:4px;" title="Choose how many seconds after the previous leader this leader should arrive">
+          <option value="0">0 sec</option>
+          <option value="1" selected>1 sec</option>
+          <option value="2">2 sec</option>
+          <option value="3">3 sec</option>
+          <option value="4">4 sec</option>
+          <option value="5">5 sec</option>
+          <option value="6">6 sec</option>
+          <option value="7">7 sec</option>
+          <option value="8">8 sec</option>
+          <option value="9">9 sec</option>
+        </select>
+      </div>
+
+      <!-- March Duration HH:MM:SS -->
+      <div class="field">
+        <label>March Duration</label>
+        <div class="time-row">
+          <div class="time-slot">
+            <input type="number" id="lMH" min="0" max="99" placeholder="00" title="Hours for this leader's march duration"/>
+            <div class="time-slot-label">HH</div>
+          </div>
+          <span class="time-colon">:</span>
+          <div class="time-slot">
+            <input type="number" id="lMM" min="0" max="59" placeholder="00" title="Minutes for this leader's march duration"/>
+            <div class="time-slot-label">MM</div>
+          </div>
+          <span class="time-colon">:</span>
+          <div class="time-slot">
+            <input type="number" id="lMS" min="0" max="59" placeholder="00" title="Seconds for this leader's march duration"/>
+            <div class="time-slot-label">SS</div>
+          </div>
+        </div>
+        <label>Rally Duration</label>
+        <div class="rally-mini-selector">
+          <button type="button" class="rally-mini-btn" data-rally-sec="60" onclick="selectAddLeaderRally(60)" title="Set this leader's rally duration to 1 minute">1 min</button>
+          <button type="button" class="rally-mini-btn selected" data-rally-sec="300" onclick="selectAddLeaderRally(300)" title="Set this leader's rally duration to 5 minutes">5 min</button>
+          <button type="button" class="rally-mini-btn" data-rally-sec="600" onclick="selectAddLeaderRally(600)" title="Set this leader's rally duration to 10 minutes">10 min</button>
+        </div>
+      </div>
+
+      <!-- Order -->
+      <div class="field">
+        <label>Order</label>
+        <input type="number" id="lOrder" min="1" placeholder="auto" title="Set this leader's place in the sequence. Leave empty to use the next slot automatically"/>
+        <button class="add-btn" onclick="addLeader()" title="Add this leader to the schedule using the values entered above">+ Add Leader</button>
+      </div>
+
+    </div>
+
+    <div class="actions-row">
+      <button class="sound-btn" id="soundBtn" onclick="toggleSound()" title="Turn sound alerts on or off">Sound: OFF</button>
+      <button class="clear-btn" onclick="clearAll()" title="Remove all leaders from the current schedule">Clear All</button>
+    </div>
+  </div>
+  <!-- Leader History Panel -->
+  <div class="panel panel-collapsible" id="leaderHistoryPanel">
+    <button class="panel-collapsible-toggle" type="button" onclick="toggleLeaderHistoryPanel()">
+      <div class="panel-title">Leader History <span class="panel-collapse-icon">▼</span></div>
+    </button>
+
+    <div class="panel-collapsible-body">
+      <div class="history-grid">
+        <div class="field">
+          <label>Historical Leader</label>
+          <select id="historySelect" class="order-select" style="width:100%;" onchange="loadHistoryLeaderFromDropdown(this.value, false)" title="Choose a previously saved leader and march time">
+            <option value="">Select Historical Leader</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Stored March Time</label>
+          <input type="text" id="historyMarchPreview" placeholder="--:--:--" readonly title="Shows the saved march time for the selected historical leader" />
+        </div>
+
+        <div class="field">
+          <label>&nbsp;</label>
+          <button class="clear-btn" type="button" onclick="addSelectedHistoryLeader()" title="Load the selected historical leader into the Add Leader panel">Add Selected</button>
+        </div>
+      </div>
+
+      <div class="history-table-wrap">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th title="The leader name">Leader</th>
+              <th>March Time</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="tip">Tip: double click a historical leader to populate the Add Leader panel.</div>
+    </div>
+  </div>
+
+
+  <!-- Leader Table -->
+  <div class="table-section">
+    <div class="table-header">Leader Sync Table</div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th title="The leader's position in the sequence">Order</th>
+            <th title="The leader name">Leader</th>
+            <th title="Seconds between this arrival and the previous one">Gap</th>
+            <th title="Travel time and rally duration for this leader">March</th>
+            <th title="Exact UTC time this leader should call the rally">Rally Start UTC</th>
+            <th title="Exact UTC time this leader is scheduled to arrive">Arrival UTC</th>
+            <th title="Live status showing when to call or when troops are marching">Countdown</th>
+            <th title="Visual progress through the march window">Progress</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="cards" id="mobileCards"></div>
+    <div class="empty-state" id="emptyState">// No leaders synced — add one above to begin coordination</div>
+  </div>
+
+  <div class="tip">Tip: double clicking on leader row will copy the instruction to clip board telling the leader when to start the rally.</div>
+
+  <div class="copy-plan-row">
+    <button class="copy-plan-btn" type="button" onclick="copyAllPlan()" title="Copy the full rally plan for all leaders to your clipboard">Copy All Plan</button>
+  </div>
+
+  <div class="panel panel-collapsible collapsed" id="enemyMarchesPanel">
+    <button class="panel-collapsible-toggle" type="button" onclick="toggleEnemyMarchesPanel()" title="Show or hide the enemy march prediction panel">
+      <div class="panel-title">Enemy Marches <span class="panel-collapse-icon">▼</span></div>
+    </button>
+    <div class="panel-collapsible-body">
+      <div class="panel-topbar">
+        <div class="tip" style="margin-top:0; text-align:left; flex:1;" title="Track live enemy rallies by entering the time left on their rally and their march time.">Add a live enemy rally using the remaining rally timer and the enemy march time to predict its arrival.</div>
+        <button class="enemy-add-btn" type="button" onclick="addEnemyMarchCard()" title="Add a new enemy march card. Enemy cards auto-sort by soonest predicted arrival.">+</button>
+      </div>
+      <div id="enemyMarchesEmpty" class="enemy-empty-state">// No enemy marches tracked yet — press + to add one</div>
+      <div id="enemyMarchesCards" class="enemy-cards"></div>
+    </div>
+  </div>
+
+  <div class="panel panel-collapsible collapsed" id="instructionPanel">
+    <button class="panel-collapsible-toggle" type="button" onclick="toggleInstructionPanel()" title="Show or hide quick usage instructions">
+      <div class="panel-title">Instructions & How to Use <span class="panel-collapse-icon">▼</span></div>
+    </button>
+    <div class="panel-collapsible-body">
+      <div class="instruction-list">
+        <div class="instruction-item"><strong>1. Set Target First Arrival</strong>Enter the UTC time when the first leader should land on target.</div>
+        <div class="instruction-item"><strong>2. Add Leaders</strong>Enter the leader name, march duration, rally duration, optional gap, and optional order, then press Add Leader.</div>
+        <div class="instruction-item"><strong>3. Review the Table</strong>Use Rally Start UTC to know when to call, Arrival UTC to confirm hit timing, and Countdown to follow the live status.</div>
+        <div class="instruction-item"><strong>4. Send Instructions</strong>Double click a leader row to copy that leader's rally call message to your clipboard, or use Copy All Plan to copy every leader instruction at once.</div>
+        <div class="instruction-item"><strong>5. Track Enemy Rally</strong>Open Enemy Marches, press +, then enter the enemy leader name, enemy march time, and the enemy rally time remaining right now. The tool will predict the enemy Arrival Time and live Countdown, auto-sort the enemy cards by soonest arrival, and each enemy card can copy a warning message for chat.</div>
+        <div class="instruction-item"><strong>6. Fine Tune Timing</strong>Adjust order or gap in the table if you need to change spacing between arrivals.</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>RADSAW RALLY SYNCER v2.2 </footer>
+</div>
+
+<script>
+// ── STATE ──
+let leaders = JSON.parse(localStorage.getItem('rrs_leaders') || '[]');
+leaders = Array.isArray(leaders) ? leaders.map(l => ({
+  ...l,
+  order: Number.isFinite(Number(l.order)) ? Number(l.order) : 1,
+  rallySec: Number.isFinite(Number(l.rallySec)) ? Number(l.rallySec) : 300,
+  gapSec: Number.isFinite(Number(l.gapSec)) ? Number(l.gapSec) : 1
+})) : [];
+leaders.sort((a, b) => (a.order - b.order) || (a.id - b.id));
+let addLeaderRallySec = 300; // default 5 min for new leaders
+let soundOn = false;
+
+// ── HELPERS ──
+function padTwo(n) { return String(Math.floor(n)).padStart(2, '0'); }
+
+function fmtUTC(date) {
+  return `${padTwo(date.getUTCHours())}:${padTwo(date.getUTCMinutes())}:${padTwo(date.getUTCSeconds())}`;
+}
+
+function fmtLocal(date) {
+  return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+}
+
+function fmtDuration(totalSec) {
+  if (totalSec < 0) totalSec = 0;
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = Math.floor(totalSec % 60);
+  return `${padTwo(h)}:${padTwo(m)}:${padTwo(s)}`;
+}
+
+function fmtMarch(sec) {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (h > 0) return `${h}h ${padTwo(m)}m ${padTwo(s)}s`;
+  if (m > 0) return `${m}m ${padTwo(s)}s`;
+  return `${s}s`;
+}
+
+function getCountdownState(times, leader, now) {
+  if (!times) return { text: '--:--:--', cls: 'col-countdown' };
+
+  const rallySec = Number(leader.rallySec) || 300;
+  const secsToArrival = Math.round((times.arrival.getTime() - now) / 1000);
+  const secsToRally   = Math.round((times.rallyStart.getTime() - now) / 1000);
+  const launchEpoch   = times.rallyStart.getTime() + rallySec * 1000;
+  const secsToLaunch  = Math.round((launchEpoch - now) / 1000);
+
+  if (secsToArrival <= 0) {
+    return { text: 'ARRIVED', cls: 'col-arrival' };
+  }
+
+  if (secsToRally > 5) {
+    return { text: fmtDuration(secsToRally), cls: 'col-countdown' };
+  }
+
+  if (secsToRally > 0) {
+    return { text: `${secsToRally} CALL RALLY NOW!`, cls: 'col-rally' };
+  }
+
+  if (secsToLaunch > 0) {
+    return { text: `CALL RALLY NOW! (Rally Timer ${fmtDuration(secsToLaunch)})`, cls: 'col-rally' };
+  }
+
+  return { text: `MARCHING (${fmtDuration(secsToArrival)})`, cls: 'col-countdown' };
+}
+
+// ── AUTO-FOCUS & CLAMP: HH → MM → SS ──
+function wireTimeFocus(hId, mId, sId, maxH, onChange) {
+  const hEl = document.getElementById(hId);
+  const mEl = document.getElementById(mId);
+  const sEl = document.getElementById(sId);
+
+  function clean(el) {
+    el.value = String(el.value || '').replace(/\D/g, '').slice(0, 2);
+  }
+
+  function clamp(el, max) {
+    let v = parseInt(el.value, 10);
+    if (isNaN(v)) return;
+    if (v < 0) v = 0;
+    if (v > max) v = max;
+    el.value = String(v);
+  }
+
+  function padField(el, max) {
+    let v = parseInt(el.value, 10);
+    if (isNaN(v)) v = 0;
+    if (v < 0) v = 0;
+    if (v > max) v = max;
+    el.value = String(v).padStart(2, '0');
+  }
+
+  hEl.addEventListener('input', () => {
+    clean(hEl);
+    clamp(hEl, maxH);
+    if (onChange) onChange();
+    if (hEl.value.length >= 2) {
+      padField(hEl, maxH);
+      mEl.focus();
+      mEl.select();
+    }
+  });
+
+  mEl.addEventListener('input', () => {
+    clean(mEl);
+    clamp(mEl, 59);
+    if (onChange) onChange();
+    if (mEl.value.length >= 2) {
+      padField(mEl, 59);
+      sEl.focus();
+      sEl.select();
+    }
+  });
+
+  sEl.addEventListener('input', () => {
+    clean(sEl);
+    clamp(sEl, 59);
+    if (onChange) onChange();
+    if (sEl.value.length >= 2) {
+      padField(sEl, 59);
+    }
+  });
+
+  [hEl, mEl, sEl].forEach((el, idx) => {
+    const max = idx === 0 ? maxH : 59;
+    el.addEventListener('blur', () => {
+      if (el.value === '') el.value = '00';
+      padField(el, max);
+      if (onChange) onChange();
+    });
+    el.addEventListener('focus', () => el.select());
+  });
+}
+
+wireTimeFocus('arrH', 'arrM', 'arrS', 23, renderTable);
+wireTimeFocus('lMH',  'lMM',  'lMS',  99, renderTable);
+
+function setDefaultArrivalToCurrentUTC() {
+  const now = new Date();
+  const arrH = document.getElementById('arrH');
+  const arrM = document.getElementById('arrM');
+  const arrS = document.getElementById('arrS');
+  if (!arrH || !arrM || !arrS) return;
+  if (!arrH.value && !arrM.value && !arrS.value) {
+    arrH.value = padTwo(now.getUTCHours());
+    arrM.value = padTwo(now.getUTCMinutes());
+    arrS.value = padTwo(now.getUTCSeconds());
+  }
+}
+
+// ── PARSE TARGET ARRIVAL ──
+function getTargetArrival() {
+  const h = parseInt(document.getElementById('arrH').value);
+  const m = parseInt(document.getElementById('arrM').value);
+  const s = parseInt(document.getElementById('arrS').value);
+  if (isNaN(h) || isNaN(m) || isNaN(s)) return null;
+  const now = new Date();
+  let t = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), h, m, s));
+  if (t < now) t = new Date(t.getTime() + 86400000); // roll to next day
+  return t;
+}
+
+// ── CALC PER-LEADER TIMES ──
+// First leader arrives at target first arrival.
+// Each next leader adds its own gapSec to the previous arrival.
+// Duplicate order values are allowed.
+function getSchedule(firstArrival) {
+  const ordered = [...leaders].sort((a, b) => {
+    if (a.order !== b.order) return a.order - b.order;
+    return a.id - b.id;
+  });
+
+  const schedule = new Map();
+  let previousArrival = null;
+
+  ordered.forEach((leader, index) => {
+    const gapSec = Number.isFinite(Number(leader.gapSec)) ? Number(leader.gapSec) : 1;
+    const arrival = index === 0
+      ? new Date(firstArrival.getTime())
+      : new Date(previousArrival.getTime() + gapSec * 1000);
+
+    const rallySec = Number(leader.rallySec) || 300;
+    const rallyStart = new Date(arrival.getTime() - (leader.marchSec + rallySec) * 1000);
+
+    schedule.set(leader.id, { arrival, rallyStart });
+    previousArrival = arrival;
+  });
+
+  return schedule;
+}
+
+function selectAddLeaderRally(sec) {
+  addLeaderRallySec = sec;
+  document.querySelectorAll('.rally-mini-btn').forEach(btn => {
+    btn.classList.toggle('selected', Number(btn.dataset.rallySec) === sec);
+  });
+  renderTable();
+}
+
+// ── ORDER AUTO-SUGGEST ──
+function updateOrderHint() {
+  const next = leaders.length + 1;
+  const el = document.getElementById('lOrder');
+  if (el && !el.dataset.userChanged) el.placeholder = String(next);
+}
+
+document.getElementById('lOrder').addEventListener('input', function () {
+  this.dataset.userChanged = this.value ? 'yes' : '';
+});
+
+// ── ADD LEADER ──
+function addLeader() {
+  const name  = document.getElementById('lName').value.trim();
+  const mH    = parseInt(document.getElementById('lMH').value) || 0;
+  const mM    = parseInt(document.getElementById('lMM').value) || 0;
+  const mS    = parseInt(document.getElementById('lMS').value) || 0;
+  const march = mH * 3600 + mM * 60 + mS;
+  const gapSec = parseInt(document.getElementById('lGap').value, 10);
+  const orderEl = document.getElementById('lOrder');
+  const requestedOrder = orderEl.value ? parseInt(orderEl.value, 10) : leaders.length + 1;
+
+  if (!name)     { alert('Please enter a leader name.'); return; }
+  if (march < 1) { alert('Please enter a march duration.'); return; }
+
+  const safeOrder = Math.max(1, Math.min(leaders.length + 1, requestedOrder));
+  const gap = Number.isFinite(gapSec) ? Math.max(0, Math.min(9, gapSec)) : 1;
+
+  const newLeader = {
+    id: Date.now(),
+    name,
+    marchSec: march,
+    order: safeOrder,
+    rallySec: addLeaderRallySec,
+    gapSec: gap
+  };
+
+  const sorted = [...leaders].sort((a, b) => {
+    if (a.order !== b.order) return a.order - b.order;
+    return a.id - b.id;
+  });
+
+  sorted.splice(safeOrder - 1, 0, newLeader);
+  sorted.forEach((leader, idx) => leader.order = idx + 1);
+  leaders = sorted;
+
+  upsertHistoricalLeader(name, march);
+  save();
+  renderTable();
+  renderHistoryPanel();
+  updateLiveCells();
+
+  document.getElementById('lName').value = '';
+  document.getElementById('lMH').value   = '';
+  document.getElementById('lMM').value   = '';
+  document.getElementById('lMS').value   = '';
+  document.getElementById('lGap').value  = '1';
+  const addSelect = document.getElementById('addLeaderHistorySelect');
+  if (addSelect) addSelect.value = '';
+  orderEl.value = '';
+  delete orderEl.dataset.userChanged;
+  selectAddLeaderRally(300);
+  updateOrderHint();
+}
+
+function removeLeader(id) {
+  leaders = leaders.filter(l => l.id !== id);
+  if (selectedLeaderId === id) selectedLeaderId = null;
+
+  leaders.sort((a, b) => {
+    if (a.order !== b.order) return a.order - b.order;
+    return a.id - b.id;
+  });
+  leaders.forEach((leader, idx) => leader.order = idx + 1);
+
+  save();
+  renderTable();
+  updateLiveCells();
+  updateOrderHint();
+}
+
+function clearAll() {
+  if (!leaders.length || confirm('Clear all leaders?')) {
+    leaders = [];
+    save();
+    renderTable();
+    updateOrderHint();
+  }
+}
+
+
+
+function changeLeaderOrder(id, newOrder) {
+  newOrder = parseInt(newOrder, 10);
+  if (!Number.isFinite(newOrder)) return;
+
+  const sorted = [...leaders].sort((a, b) => {
+    if (a.order !== b.order) return a.order - b.order;
+    return a.id - b.id;
+  });
+
+  const currentIndex = sorted.findIndex(l => l.id === id);
+  if (currentIndex === -1) return;
+
+  const [moved] = sorted.splice(currentIndex, 1);
+  const targetIndex = Math.max(0, Math.min(sorted.length, newOrder - 1));
+  sorted.splice(targetIndex, 0, moved);
+
+  sorted.forEach((leader, idx) => leader.order = idx + 1);
+  leaders = sorted;
+
+  save();
+  renderTable();
+  updateLiveCells();
+  updateOrderHint();
+}
+
+function changeLeaderGap(id, newGap) {
+  newGap = parseInt(newGap, 10);
+  if (!Number.isFinite(newGap) || newGap < 0) return;
+
+  const leader = leaders.find(l => l.id === id);
+  if (!leader) return;
+
+  leader.gapSec = newGap;
+  save();
+  renderTable();
+}
+
+function buildOrderOptions(selected) {
+  const total = Math.max(1, leaders.length);
+  let html = '';
+  for (let i = 1; i <= total; i++) {
+    html += `<option value="${i}" ${i === selected ? 'selected' : ''}>${i}</option>`;
+  }
+  return html;
+}
+
+function buildGapOptions(selected) {
+  let html = '';
+  for (let i = 0; i <= 9; i++) {
+    html += `<option value="${i}" ${i === selected ? 'selected' : ''}>${i}s</option>`;
+  }
+  return html;
+}
+
+function save() {
+  leaders = leaders.map(l => ({
+    ...l,
+    order: Number.isFinite(Number(l.order)) ? Number(l.order) : 1,
+    rallySec: Number.isFinite(Number(l.rallySec)) ? Number(l.rallySec) : 300,
+    gapSec: Number.isFinite(Number(l.gapSec)) ? Number(l.gapSec) : 1
+  }));
+  localStorage.setItem('rrs_leaders', JSON.stringify(leaders));
+}
+
+
+let selectedLeaderId = null;
+let historicalLeaders = JSON.parse(localStorage.getItem('rrs_historical_leaders') || '[]');
+historicalLeaders = Array.isArray(historicalLeaders) ? historicalLeaders : [];
+let selectedHistoryLeaderName = null;
+
+let enemyMarches = JSON.parse(localStorage.getItem('rrs_enemy_marches') || '[]');
+enemyMarches = Array.isArray(enemyMarches) ? enemyMarches.map(item => {
+  const marchSec = Math.max(0, Number(item.marchSec) || 0);
+  const rallyRemainingSec = Math.max(0, Number(item.rallyRemainingSec) || 0);
+  const rallyLaunchTs = Number(item.rallyLaunchTs) || (Date.now() + rallyRemainingSec * 1000);
+  return {
+    id: Number(item.id) || Date.now(),
+    name: String(item.name || ''),
+    marchSec,
+    rallyRemainingSec,
+    rallyLaunchTs,
+    targetArrivalTs: Number(item.targetArrivalTs) || (rallyLaunchTs + marchSec * 1000)
+  };
+}) : [];
+
+function saveEnemyMarches() {
+  localStorage.setItem('rrs_enemy_marches', JSON.stringify(enemyMarches));
+}
+
+function enemyTimeParts(totalSec) {
+  totalSec = Math.max(0, parseInt(totalSec || 0, 10));
+  return {
+    h: Math.floor(totalSec / 3600),
+    m: Math.floor((totalSec % 3600) / 60),
+    s: totalSec % 60
+  };
+}
+
+function enemyMMSSParts(totalSec) {
+  totalSec = Math.max(0, parseInt(totalSec || 0, 10));
+  return {
+    m: Math.floor(totalSec / 60),
+    s: totalSec % 60
+  };
+}
+
+function enemyPredictedState(item, nowTs = Date.now()) {
+  const arrivalTs = Number(item.targetArrivalTs) || nowTs;
+  const arrival = new Date(arrivalTs);
+  const secsToArrival = Math.max(0, Math.round((arrivalTs - nowTs) / 1000));
+  const rallyRemaining = Math.max(0, Math.round(((Number(item.rallyLaunchTs) || nowTs) - nowTs) / 1000));
+  return {
+    arrival,
+    countdown: secsToArrival <= 0 ? 'ARRIVED' : fmtDuration(secsToArrival),
+    rallyRemainingSec: rallyRemaining
+  };
+}
+
+function resetEnemyArrivalFromNow(item) {
+  const now = Date.now();
+  item.rallyLaunchTs = now + Math.max(0, Number(item.rallyRemainingSec) || 0) * 1000;
+  item.targetArrivalTs = item.rallyLaunchTs + Math.max(0, Number(item.marchSec) || 0) * 1000;
+}
+
+function recalcEnemyTargetsFromLaunch(item) {
+  item.targetArrivalTs = (Number(item.rallyLaunchTs) || Date.now()) + Math.max(0, Number(item.marchSec) || 0) * 1000;
+}
+
+function toggleEnemyMarchesPanel() {
+  const panel = document.getElementById('enemyMarchesPanel');
+  if (!panel) return;
+  const willCollapse = !panel.classList.contains('collapsed');
+  panel.classList.toggle('collapsed', willCollapse);
+  localStorage.setItem('rrs_enemy_collapsed', willCollapse ? '1' : '0');
+}
+
+function applyEnemyPanelState() {
+  const panel = document.getElementById('enemyMarchesPanel');
+  if (!panel) return;
+  const collapsed = localStorage.getItem('rrs_enemy_collapsed') === '1';
+  panel.classList.toggle('collapsed', collapsed);
+}
+
+function addEnemyMarchCard() {
+  const item = {
+    id: Date.now() + Math.floor(Math.random() * 1000),
+    name: '',
+    marchSec: 0,
+    rallyRemainingSec: 0,
+    rallyLaunchTs: Date.now(),
+    targetArrivalTs: Date.now()
+  };
+  resetEnemyArrivalFromNow(item);
+  enemyMarches.push(item);
+  saveEnemyMarches();
+  renderEnemyMarches();
+}
+
+function removeEnemyMarch(id) {
+  enemyMarches = enemyMarches.filter(item => item.id !== id);
+  saveEnemyMarches();
+  renderEnemyMarches();
+}
+
+function updateEnemyName(id, value) {
+  const item = enemyMarches.find(entry => entry.id === id);
+  if (!item) return;
+  item.name = value;
+  saveEnemyMarches();
+}
+
+function updateEnemyTimePart(id, field, part, value) {
+  const item = enemyMarches.find(entry => entry.id === id);
+  if (!item) return;
+  let num = parseInt(value, 10);
+  if (!Number.isFinite(num) || num < 0) num = 0;
+
+  if (field === 'rallyRemainingSec') {
+    const max = part === 'm' ? 99 : 59;
+    if (num > max) num = max;
+    const parts = enemyMMSSParts(item.rallyRemainingSec);
+    parts[part] = num;
+    item.rallyRemainingSec = parts.m * 60 + parts.s;
+    resetEnemyArrivalFromNow(item);
+  } else {
+    const max = part === 'h' ? 99 : 59;
+    if (num > max) num = max;
+    const parts = enemyTimeParts(item[field]);
+    parts[part] = num;
+    item[field] = parts.h * 3600 + parts.m * 60 + parts.s;
+    recalcEnemyTargetsFromLaunch(item);
+  }
+
+  saveEnemyMarches();
+  renderEnemyMarches();
+}
+
+function renderEnemyMarches() {
+  const wrap = document.getElementById('enemyMarchesCards');
+  const empty = document.getElementById('enemyMarchesEmpty');
+  if (!wrap || !empty) return;
+
+  wrap.innerHTML = '';
+  const sorted = [...enemyMarches].sort((a, b) => (a.targetArrivalTs - b.targetArrivalTs) || (a.id - b.id));
+  empty.style.display = sorted.length ? 'none' : 'block';
+
+  sorted.forEach(item => {
+    const march = enemyTimeParts(item.marchSec);
+    const state = enemyPredictedState(item);
+    const rally = enemyMMSSParts(state.rallyRemainingSec);
+
+    const card = document.createElement('div');
+    card.className = 'enemy-card';
+    card.innerHTML = `
+      <div class="enemy-card-grid">
+        <div class="field">
+          <label title="Name of the enemy rally leader you are tracking">Enemy Leader Name</label>
+          <input type="text" value="${String(item.name || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}" placeholder="Insert Enemy Leader Name" title="Enter the enemy rally leader name" oninput="updateEnemyName(${item.id}, this.value)" />
+        </div>
+        <div class="field">
+          <label title="How long enemy troops take to travel after the rally launches">Enemy March Time</label>
+          <div class="time-row" title="Enemy march duration in hours, minutes, and seconds">
+            <div class="time-slot"><input type="number" min="0" max="99" value="${padTwo(march.h)}" title="Enemy troop travel time hours" onchange="updateEnemyTimePart(${item.id}, 'marchSec', 'h', this.value)" /><div class="time-slot-label">HH</div></div>
+            <span class="time-colon">:</span>
+            <div class="time-slot"><input type="number" min="0" max="59" value="${padTwo(march.m)}" title="Enemy troop travel time minutes" onchange="updateEnemyTimePart(${item.id}, 'marchSec', 'm', this.value)" /><div class="time-slot-label">MM</div></div>
+            <span class="time-colon">:</span>
+            <div class="time-slot"><input type="number" min="0" max="59" value="${padTwo(march.s)}" title="Enemy troop travel time seconds" onchange="updateEnemyTimePart(${item.id}, 'marchSec', 's', this.value)" /><div class="time-slot-label">SS</div></div>
+          </div>
+        </div>
+        <div class="field">
+          <label title="The enemy rally timer remaining right now. This counts down live once set.">Current Rally Time</label>
+          <div class="time-row" title="Remaining enemy rally time in minutes and seconds">
+            <div class="time-slot"><input type="number" min="0" max="99" value="${padTwo(rally.m)}" data-enemy-rally-input="m" data-enemy-id="${item.id}" title="Remaining enemy rally timer minutes" onchange="updateEnemyTimePart(${item.id}, 'rallyRemainingSec', 'm', this.value)" /><div class="time-slot-label">MM</div></div>
+            <span class="time-colon">:</span>
+            <div class="time-slot"><input type="number" min="0" max="59" value="${padTwo(rally.s)}" data-enemy-rally-input="s" data-enemy-id="${item.id}" title="Remaining enemy rally timer seconds" onchange="updateEnemyTimePart(${item.id}, 'rallyRemainingSec', 's', this.value)" /><div class="time-slot-label">SS</div></div>
+          </div>
+        </div>
+        <div class="enemy-action-wrap field">
+          <label>&nbsp;</label>
+          <div class="enemy-actions">
+            <button class="enemy-btn" type="button" onclick="copyEnemyArrival(${item.id})" title="Copy a message showing when this enemy leader will arrive">COPY</button>
+            <button class="enemy-btn" type="button" onclick="removeEnemyMarch(${item.id})" title="Remove this enemy march card">REMOVE</button>
+          </div>
+        </div>
+      </div>
+      <div class="enemy-status-grid">
+        <div class="enemy-status-box" title="Predicted UTC time when this enemy march will land if the timers are correct">
+          <div class="enemy-status-label">Arrival Time</div>
+          <div class="enemy-status-value enemy-arrival-cell" data-enemy-id="${item.id}">${fmtUTC(state.arrival)}</div>
+        </div>
+        <div class="enemy-status-box" title="Live countdown until the predicted enemy arrival">
+          <div class="enemy-status-label">Countdown</div>
+          <div class="enemy-status-value enemy-countdown-cell" data-enemy-id="${item.id}">${state.countdown}</div>
+        </div>
+      </div>
+    `;
+    wrap.appendChild(card);
+  });
+}
+
+function updateEnemyMarchesLive(nowTs = Date.now()) {
+  const items = [...enemyMarches].sort((a, b) => (a.targetArrivalTs - b.targetArrivalTs) || (a.id - b.id));
+  items.forEach(item => {
+    const state = enemyPredictedState(item, nowTs);
+    const rally = enemyMMSSParts(state.rallyRemainingSec);
+
+    document.querySelectorAll(`.enemy-arrival-cell[data-enemy-id="${item.id}"]`).forEach(el => {
+      el.textContent = fmtUTC(state.arrival);
+    });
+    document.querySelectorAll(`.enemy-countdown-cell[data-enemy-id="${item.id}"]`).forEach(el => {
+      el.textContent = state.countdown;
+      el.classList.remove('col-arrival', 'col-rally', 'col-countdown');
+      el.classList.add(state.countdown === 'ARRIVED' ? 'col-arrival' : 'col-rally');
+    });
+    document.querySelectorAll(`input[data-enemy-rally-input="m"][data-enemy-id="${item.id}"]`).forEach(el => {
+      if (document.activeElement !== el) el.value = padTwo(rally.m);
+    });
+    document.querySelectorAll(`input[data-enemy-rally-input="s"][data-enemy-id="${item.id}"]`).forEach(el => {
+      if (document.activeElement !== el) el.value = padTwo(rally.s);
+    });
+  });
+}
+
+
+function formatRallyMinutes(sec) {
+  const mins = Math.round(sec / 60);
+  return `${mins} minute rally`;
+}
+
+function buildCopyInstruction(leader, times) {
+  if (!times) return null;
+  const rallySec = Number(leader.rallySec) || 300;
+  return `${leader.name} call a ${formatRallyMinutes(rallySec)} at exactly ${fmtUTC(times.rallyStart)} UTC.`;
+}
+
+async function copyLeaderInstruction(leader, times) {
+  const msg = buildCopyInstruction(leader, times);
+  if (!msg) return;
+  try {
+    await navigator.clipboard.writeText(msg);
+  } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = msg;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  }
+}
+
+
+async function copyEnemyArrival(id) {
+  const item = enemyMarches.find(entry => entry.id === id);
+  if (!item) return;
+  const state = enemyPredictedState(item);
+  const name = (item.name || 'Enemy Leader').trim() || 'Enemy Leader';
+  const msg = `${name} will arrive to target at ${fmtUTC(state.arrival)}.`;
+  try {
+    await navigator.clipboard.writeText(msg);
+  } catch (err) {
+    const ta = document.createElement('textarea');
+    ta.value = msg;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  }
+}
+
+async function copyAllPlan() {
+  if (!leaders.length) {
+    alert('There are no leaders to copy yet.');
+    return;
+  }
+
+  const firstArrival = getTargetArrival();
+  if (!firstArrival) {
+    alert('Please set a target first arrival time first.');
+    return;
+  }
+
+  const schedule = getSchedule(firstArrival);
+  const sortedLeaders = [...leaders].sort((a, b) => {
+    const aTimes = schedule.get(a.id);
+    const bTimes = schedule.get(b.id);
+    if (aTimes && bTimes) {
+      const rallyDiff = aTimes.rallyStart.getTime() - bTimes.rallyStart.getTime();
+      if (rallyDiff !== 0) return rallyDiff;
+      const arrivalDiff = aTimes.arrival.getTime() - bTimes.arrival.getTime();
+      if (arrivalDiff !== 0) return arrivalDiff;
+    }
+    if (a.order !== b.order) return a.order - b.order;
+    return a.id - b.id;
+  });
+
+  const lines = sortedLeaders.map((leader, index) => {
+    const times = schedule.get(leader.id);
+    if (!times) return null;
+    return `${index + 1}. ${buildCopyInstruction(leader, times)}`;
+  }).filter(Boolean);
+
+  if (!lines.length) {
+    alert('There are no calculated rally instructions to copy yet.');
+    return;
+  }
+
+  const msg = lines.join('\n');
+  try {
+    await navigator.clipboard.writeText(msg);
+  } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = msg;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  }
+}
+
+function fmtHMSFromSec(totalSec) {
+  totalSec = Math.max(0, parseInt(totalSec || 0, 10));
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  return `${padTwo(h)}:${padTwo(m)}:${padTwo(s)}`;
+}
+
+function saveHistoricalLeaders() {
+  localStorage.setItem('rrs_historical_leaders', JSON.stringify(historicalLeaders));
+}
+
+function upsertHistoricalLeader(name, marchSec) {
+  const cleanName = String(name || '').trim();
+  const cleanMarch = parseInt(marchSec, 10);
+
+  if (!cleanName || !Number.isFinite(cleanMarch) || cleanMarch < 1) return;
+
+  const existing = historicalLeaders.find(h => h.name.toLowerCase() === cleanName.toLowerCase());
+  if (existing) {
+    existing.name = cleanName;
+    existing.marchSec = cleanMarch;
+  } else {
+    historicalLeaders.push({ name: cleanName, marchSec: cleanMarch });
+  }
+
+  historicalLeaders.sort((a, b) => a.name.localeCompare(b.name));
+  saveHistoricalLeaders();
+  renderHistoryPanel();
+}
+
+function populateAddLeaderFromHistory(name) {
+  const item = historicalLeaders.find(h => h.name === name);
+  if (!item) return;
+
+  selectedHistoryLeaderName = item.name;
+
+  document.getElementById('lName').value = item.name;
+
+  const totalSec = Number(item.marchSec) || 0;
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+
+  document.getElementById('lMH').value = padTwo(h);
+  document.getElementById('lMM').value = padTwo(m);
+  document.getElementById('lMS').value = padTwo(s);
+
+  const addSelect = document.getElementById('addLeaderHistorySelect');
+  const historySelect = document.getElementById('historySelect');
+  const preview = document.getElementById('historyMarchPreview');
+
+  if (addSelect) addSelect.value = item.name;
+  if (historySelect) historySelect.value = item.name;
+  if (preview) preview.value = fmtHMSFromSec(item.marchSec);
+
+  renderHistoryPanel();
+}
+
+function loadHistoryLeaderFromDropdown(name, syncAddPanel) {
+  const item = historicalLeaders.find(h => h.name === name);
+  selectedHistoryLeaderName = item ? item.name : null;
+
+  const addSelect = document.getElementById('addLeaderHistorySelect');
+  const historySelect = document.getElementById('historySelect');
+  const preview = document.getElementById('historyMarchPreview');
+
+  if (addSelect && addSelect.value !== (name || '')) addSelect.value = name || '';
+  if (historySelect && historySelect.value !== (name || '')) historySelect.value = name || '';
+  if (preview) preview.value = item ? fmtHMSFromSec(item.marchSec) : '';
+
+  if (syncAddPanel && item) {
+    populateAddLeaderFromHistory(item.name);
+    return;
+  }
+
+  renderHistoryPanel();
+}
+
+function deleteHistoryLeader(name) {
+  if (!name) return;
+  historicalLeaders = historicalLeaders.filter(h => h.name !== name);
+  if (selectedHistoryLeaderName === name) selectedHistoryLeaderName = null;
+  saveHistoricalLeaders();
+
+  const addSelect = document.getElementById('addLeaderHistorySelect');
+  const historySelect = document.getElementById('historySelect');
+  const preview = document.getElementById('historyMarchPreview');
+
+  if (addSelect && addSelect.value === name) addSelect.value = '';
+  if (historySelect && historySelect.value === name) historySelect.value = '';
+  if (preview && !selectedHistoryLeaderName) preview.value = '';
+
+  renderHistoryPanel();
+}
+
+function deleteSelectedHistoryLeader() {
+  if (!selectedHistoryLeaderName) return;
+  if (!confirm(`Delete historical leader "${selectedHistoryLeaderName}"?`)) return;
+  deleteHistoryLeader(selectedHistoryLeaderName);
+}
+
+
+function addSelectedHistoryLeader() {
+  if (!selectedHistoryLeaderName) return;
+  populateAddLeaderFromHistory(selectedHistoryLeaderName);
+}
+
+
+function toggleLeaderHistoryPanel() {
+  const panel = document.getElementById('leaderHistoryPanel');
+  if (!panel) return;
+  const willCollapse = !panel.classList.contains('collapsed');
+  panel.classList.toggle('collapsed', willCollapse);
+  localStorage.setItem('rrs_history_collapsed', willCollapse ? '1' : '0');
+}
+
+function toggleInstructionPanel() {
+  const panel = document.getElementById('instructionPanel');
+  if (!panel) return;
+  panel.classList.toggle('collapsed');
+}
+
+function applyLeaderHistoryPanelState() {
+  const panel = document.getElementById('leaderHistoryPanel');
+  if (!panel) return;
+  const collapsed = localStorage.getItem('rrs_history_collapsed') === '1';
+  panel.classList.toggle('collapsed', collapsed);
+}
+
+function renderHistoryPanel() {
+  const addSelect = document.getElementById('addLeaderHistorySelect');
+  const historySelect = document.getElementById('historySelect');
+  const tbody = document.getElementById('historyTableBody');
+  const preview = document.getElementById('historyMarchPreview');
+
+  if (!historySelect || !tbody) return;
+
+  const esc = (s) => String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+  const options = ['<option value="">Select Historical Leader</option>']
+    .concat(historicalLeaders.map(h => `<option value="${esc(h.name)}">${esc(h.name)}</option>`))
+    .join('');
+
+  if (addSelect) addSelect.innerHTML = options;
+  historySelect.innerHTML = options;
+
+  if (selectedHistoryLeaderName && historicalLeaders.some(h => h.name === selectedHistoryLeaderName)) {
+    if (addSelect) addSelect.value = selectedHistoryLeaderName;
+    historySelect.value = selectedHistoryLeaderName;
+    const item = historicalLeaders.find(h => h.name === selectedHistoryLeaderName);
+    if (preview) preview.value = item ? fmtHMSFromSec(item.marchSec) : '';
+  } else {
+    if (addSelect) addSelect.value = '';
+    historySelect.value = '';
+    if (preview) preview.value = '';
+  }
+
+  tbody.innerHTML = '';
+
+  if (!historicalLeaders.length) {
+    tbody.innerHTML = '<tr><td colspan="3" style="color: var(--text-dim);">No historical leaders saved yet.</td></tr>';
+    return;
+  }
+
+  historicalLeaders.forEach(item => {
+    const tr = document.createElement('tr');
+    tr.className = 'history-row' + (selectedHistoryLeaderName === item.name ? ' selected' : '');
+    tr.innerHTML = `
+      <td>${esc(item.name)}</td>
+      <td>${fmtHMSFromSec(item.marchSec)}</td>
+      <td><button class="del-btn" onclick="event.stopPropagation(); deleteHistoryLeader(${JSON.stringify(item.name)})">✕</button></td>
+    `;
+
+    tr.addEventListener('click', () => {
+      selectedHistoryLeaderName = item.name;
+      if (addSelect) addSelect.value = item.name;
+      historySelect.value = item.name;
+      if (preview) preview.value = fmtHMSFromSec(item.marchSec);
+      renderHistoryPanel();
+    });
+
+    tr.addEventListener('dblclick', () => {
+      populateAddLeaderFromHistory(item.name);
+    });
+
+    tbody.appendChild(tr);
+  });
+}
+
+
+// ── RENDER TABLE ──
+function renderTable() {
+  const tbody  = document.getElementById('tableBody');
+  const cards  = document.getElementById('mobileCards');
+  const empty  = document.getElementById('emptyState');
+  const firstArrival = getTargetArrival();
+  const now = Date.now();
+
+  tbody.innerHTML = '';
+  cards.innerHTML = '';
+
+  if (!leaders.length) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const schedule = firstArrival ? getSchedule(firstArrival) : new Map();
+  const sortedLeaders = [...leaders].sort((a, b) => {
+    const aTimes = schedule.get(a.id);
+    const bTimes = schedule.get(b.id);
+    if (aTimes && bTimes) {
+      const rallyDiff = aTimes.rallyStart.getTime() - bTimes.rallyStart.getTime();
+      if (rallyDiff !== 0) return rallyDiff;
+      const arrivalDiff = aTimes.arrival.getTime() - bTimes.arrival.getTime();
+      if (arrivalDiff !== 0) return arrivalDiff;
+    }
+    if (a.order !== b.order) return a.order - b.order;
+    return a.id - b.id;
+  });
+
+  sortedLeaders.forEach(leader => {
+    const times = schedule.get(leader.id) || null;
+
+    const rallyStr   = times ? fmtUTC(times.rallyStart)  : '--:--:--';
+    const rallyLocal = times ? fmtLocal(times.rallyStart) : '--:--:--';
+    const arrStr     = times ? fmtUTC(times.arrival)      : '--:--:--';
+    const arrLocal   = times ? fmtLocal(times.arrival)    : '--:--:--';
+
+    let countdownStr = '--:--:--';
+    let countdownClass = 'col-countdown';
+    let pct = 0;
+
+    if (times) {
+      const countdownState = getCountdownState(times, leader, now);
+      countdownStr = countdownState.text;
+      countdownClass = countdownState.cls;
+
+      const totalWindow = leader.marchSec;
+      const secsToArrival = Math.round((times.arrival.getTime() - now) / 1000);
+      const secsSinceMarchStart = Math.max(0, leader.marchSec - secsToArrival);
+      pct = totalWindow > 0 ? Math.max(0, Math.min(100, (secsSinceMarchStart / totalWindow) * 100)) : 0;
+    }
+
+    const tr = document.createElement('tr');
+    tr.className = 'copy-target' + (selectedLeaderId === leader.id ? ' selected' : '');
+    if (times) tr.title = 'Double click to copy rally instruction';
+    tr.dataset.leaderId = leader.id;
+
+    tr.addEventListener('click', (e) => {
+      if (e.target.closest('.del-btn')) return;
+      if (e.target.closest('.order-select')) return;
+      selectedLeaderId = leader.id;
+      document.querySelectorAll('#tableBody tr.copy-target, #mobileCards .copy-target').forEach(el => {
+        el.classList.toggle('selected', Number(el.dataset.leaderId) === leader.id);
+      });
+    });
+
+    tr.addEventListener('dblclick', async (e) => {
+      if (e.target.closest('.del-btn')) return;
+      if (e.target.closest('.order-select')) return;
+      selectedLeaderId = leader.id;
+      document.querySelectorAll('#tableBody tr.copy-target, #mobileCards .copy-target').forEach(el => {
+        el.classList.toggle('selected', Number(el.dataset.leaderId) === leader.id);
+      });
+      await copyLeaderInstruction(leader, times);
+    });
+
+    tr.innerHTML = `
+      <td>
+        <select class="order-select"
+          title="Change this leader's position in the sequence"
+          onclick="event.stopPropagation()"
+          ondblclick="event.stopPropagation()"
+          onmousedown="event.stopPropagation()"
+          onchange="event.stopPropagation(); changeLeaderOrder(${leader.id}, this.value)">
+          ${buildOrderOptions(leader.order)}
+        </select>
+      </td>
+      <td>${leader.name}</td>
+      <td>
+        <select class="order-select"
+          title="Change this leader's position in the sequence"
+          onclick="event.stopPropagation()"
+          ondblclick="event.stopPropagation()"
+          onmousedown="event.stopPropagation()"
+          onchange="event.stopPropagation(); changeLeaderGap(${leader.id}, this.value)">
+          ${buildGapOptions(Number.isFinite(Number(leader.gapSec)) ? Number(leader.gapSec) : 1)}
+        </select>
+      </td>
+      <td>${fmtMarch(leader.marchSec)}<label style="display:block;margin-top:2px;">${formatRallyMinutes(Number(leader.rallySec) || 300)}</label></td>
+      <td class="col-rally rally-cell" data-id="${leader.id}" title="Exact UTC time this leader should call the rally">${rallyStr}</td>
+      <td class="col-arrival arrival-cell" data-id="${leader.id}" title="Exact UTC time this leader should arrive on target">${arrStr}</td>
+      <td class="countdown-cell ${countdownClass}" data-id="${leader.id}" title="Live status until rally call or arrival">${countdownStr}</td>
+      <td>
+        <div class="progress-wrap" title="Visual progress through the march window">
+          <div class="progress-bar" data-id="${leader.id}" style="width:${pct}%"></div>
+        </div>
+      </td>
+      <td><button class="del-btn" title="Remove this leader from the current schedule" onclick="event.stopPropagation(); removeLeader(${leader.id})">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+
+    const card = document.createElement('div');
+    card.className = 'leader-card copy-target' + (selectedLeaderId === leader.id ? ' selected' : '');
+    if (times) card.title = 'Double tap or double click to copy rally instruction';
+    card.dataset.leaderId = leader.id;
+
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.del-btn')) return;
+      if (e.target.closest('.order-select')) return;
+      selectedLeaderId = leader.id;
+      document.querySelectorAll('#tableBody tr.copy-target, #mobileCards .copy-target').forEach(el => {
+        el.classList.toggle('selected', Number(el.dataset.leaderId) === leader.id);
+      });
+    });
+
+    card.addEventListener('dblclick', async (e) => {
+      if (e.target.closest('.del-btn')) return;
+      if (e.target.closest('.order-select')) return;
+      selectedLeaderId = leader.id;
+      document.querySelectorAll('#tableBody tr.copy-target, #mobileCards .copy-target').forEach(el => {
+        el.classList.toggle('selected', Number(el.dataset.leaderId) === leader.id);
+      });
+      await copyLeaderInstruction(leader, times);
+    });
+
+    card.innerHTML = `
+      <div class="card-header">
+        <div class="card-name">${leader.name}</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="card-order">Order #${leader.order} · Gap ${Number.isFinite(Number(leader.gapSec)) ? Number(leader.gapSec) : 1}s · ${fmtMarch(leader.marchSec)} · ${formatRallyMinutes(Number(leader.rallySec) || 300)}</div>
+          <button class="del-btn" title="Remove this leader from the current schedule" onclick="event.stopPropagation(); removeLeader(${leader.id})">✕</button>
+        </div>
+      </div>
+      <div class="card-row"><span>Rally Start UTC</span><span class="card-rally rally-cell" data-id="${leader.id}">${rallyStr}</span></div>
+      <div class="card-row"><span>Rally Start Local</span><span class="card-rally rally-local-cell" data-id="${leader.id}">${rallyLocal}</span></div>
+      <div class="card-row"><span>Arrival UTC</span><span class="card-arrival arrival-cell" data-id="${leader.id}">${arrStr}</span></div>
+      <div class="card-row"><span>Arrival Local</span><span class="card-arrival arrival-local-cell" data-id="${leader.id}">${arrLocal}</span></div>
+      <div class="card-row"><span>Countdown</span><span class="countdown-cell ${countdownClass}" data-id="${leader.id}">${countdownStr}</span></div>
+      <div class="card-progress">
+        <div class="progress-wrap" style="width:100%">
+          <div class="progress-bar" data-id="${leader.id}" style="width:${pct}%"></div>
+        </div>
+      </div>
+    `;
+    cards.appendChild(card);
+  });
+}
+
+function updateLiveCells() {
+  const now = new Date();
+  document.getElementById('utcClock').textContent = fmtUTC(now);
+  document.getElementById('localClockDisplay').textContent = fmtLocal(now);
+  updateEnemyMarchesLive(now.getTime());
+
+  const empty = document.getElementById('emptyState');
+  if (!leaders.length) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const firstArrival = getTargetArrival();
+  if (!firstArrival) return;
+
+  const schedule = getSchedule(firstArrival);
+
+  leaders.forEach(leader => {
+    const times = schedule.get(leader.id);
+    if (!times) return;
+
+    const rallyStr = fmtUTC(times.rallyStart);
+    const arrStr = fmtUTC(times.arrival);
+    const rallyLocal = fmtLocal(times.rallyStart);
+    const arrLocal = fmtLocal(times.arrival);
+
+    document.querySelectorAll(`.rally-cell[data-id="${leader.id}"]`).forEach(el => {
+      el.textContent = rallyStr;
+    });
+    document.querySelectorAll(`.arrival-cell[data-id="${leader.id}"]`).forEach(el => {
+      el.textContent = arrStr;
+    });
+    document.querySelectorAll(`.rally-local-cell[data-id="${leader.id}"]`).forEach(el => {
+      el.textContent = rallyLocal;
+    });
+    document.querySelectorAll(`.arrival-local-cell[data-id="${leader.id}"]`).forEach(el => {
+      el.textContent = arrLocal;
+    });
+
+    const state = getCountdownState(times, leader, now);
+    document.querySelectorAll(`.countdown-cell[data-id="${leader.id}"]`).forEach(el => {
+      el.textContent = state.text;
+      el.classList.remove('col-countdown', 'col-rally', 'col-arrival');
+      el.classList.add(state.cls);
+    });
+
+    const totalWindow = leader.marchSec;
+    const secsToArrival = Math.round((times.arrival.getTime() - now.getTime()) / 1000);
+    const secsSinceMarchStart = Math.max(0, leader.marchSec - secsToArrival);
+    const pct = totalWindow > 0 ? Math.max(0, Math.min(100, (secsSinceMarchStart / totalWindow) * 100)) : 0;
+
+    document.querySelectorAll(`.progress-bar[data-id="${leader.id}"]`).forEach(el => {
+      el.style.width = `${pct}%`;
+    });
+  });
+}
+
+// ── MAIN TICK ──
+function tick() {
+  updateLiveCells();
+}
+
+// ── SOUND ──
+let audioCtx = null;
+function playBeep(freq, vol) {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc  = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.4);
+  } catch(e) {}
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  document.getElementById('soundBtn').textContent = soundOn ? 'Sound: ON' : 'Sound: OFF';
+  if (soundOn) playBeep(440, 0.2);
+}
+
+// ── INPUT LISTENERS ──
+
+// ── INIT ──
+setDefaultArrivalToCurrentUTC();
+updateOrderHint();
+renderTable();
+renderHistoryPanel();
+renderEnemyMarches();
+applyLeaderHistoryPanelState();
+applyEnemyPanelState();
+updateLiveCells();
+setInterval(tick, 1000);
+tick();
+</script>
+</body>
+</html>
